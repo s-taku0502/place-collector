@@ -66,11 +66,10 @@ export default function PlaceFeedbackPage() {
                                 {[5, 4, 3, 2, 1].map((value) => (
                                     <label
                                         key={value}
-                                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm transition ${
-                                            rating === String(value)
+                                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm transition ${rating === String(value)
                                                 ? "border-indigo-500 bg-indigo-50 text-indigo-700"
                                                 : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                                        }`}
+                                            }`}
                                     >
                                         <input
                                             type="radio"
@@ -92,11 +91,10 @@ export default function PlaceFeedbackPage() {
                                 {["また行きたい", "今回は十分"].map((choice) => (
                                     <label
                                         key={choice}
-                                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm transition ${
-                                            wantToVisitAgain === choice
+                                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm transition ${wantToVisitAgain === choice
                                                 ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                                                 : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                                        }`}
+                                            }`}
                                     >
                                         <input
                                             type="radio"

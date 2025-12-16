@@ -28,44 +28,44 @@ export default function Home() {
 
         {/* カード一覧 */}
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {places?.map(p => (
-          <div
-            key={p._id}
-            className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          >
-            <h3 className="text-lg font-semibold text-gray-900">{p.title}</h3>
-            <p className="mt-1 text-sm text-gray-600">
-              <a
-                href={p.beforeUrl || "#"}
-                className="text-blue-600 underline decoration-blue-300 hover:text-blue-700"
-              >
-                Instagram
-              </a>
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button
-                className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
-                onClick={() =>
-                  toggleVisited({
-                    id: p._id,
-                    status:
-                      p.status === "まだ行ってない"
-                        ? "行った（また行きたい）"
-                        : "まだ行ってない",
-                  })
-                }
-              >
-                {p.status === "まだ行ってない" ? "行きたい" : "✓ 行った"}
-              </button>
-              <Link
-                href={`/place/${p._id}/edit`}
-                className="rounded-lg border-2 border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-400 hover:bg-gray-100 active:scale-95"
-              >
-                編集
-              </Link>
+          {places?.map(p => (
+            <div
+              key={p._id}
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            >
+              <h3 className="text-lg font-semibold text-gray-900">{p.title}</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                <a
+                  href={p.beforeUrl || "#"}
+                  className="text-blue-600 underline decoration-blue-300 hover:text-blue-700"
+                >
+                  Instagram
+                </a>
+              </p>
+              <div className="mt-4 flex gap-2">
+                <button
+                  className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
+                  onClick={() =>
+                    toggleVisited({
+                      id: p._id,
+                      status:
+                        p.status === "まだ行ってない"
+                          ? "行った（また行きたい）"
+                          : "まだ行ってない",
+                    })
+                  }
+                >
+                  {p.status === "まだ行ってない" ? "行きたい" : "✓ 行った"}
+                </button>
+                <Link
+                  href={`/place/${p._id}/edit`}
+                  className="rounded-lg border-2 border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-400 hover:bg-gray-100 active:scale-95"
+                >
+                  編集
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
         </div>
       </div>
     </main>

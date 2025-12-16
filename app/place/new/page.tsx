@@ -184,8 +184,8 @@ export default function NewPlace() {
                                         type="button"
                                         onClick={() => toggleSeason(season)}
                                         className={`px-4 py-2 rounded-lg font-medium transition-all ${selectedSeasons.includes(season)
-                                                ? "bg-blue-600 text-white shadow-md"
-                                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                            ? "bg-blue-600 text-white shadow-md"
+                                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                             }`}
                                     >
                                         {season}
