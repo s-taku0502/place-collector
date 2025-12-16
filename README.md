@@ -1,46 +1,68 @@
-# Welcome to your Convex + Next.js + Convex Auth app
+## Place Collector（行きたい・行った場所メモアプリ）
 
-This is a [Convex](https://convex.dev/) project created with [`npm create convex`](https://www.npmjs.com/package/create-convex).
+Next.js + Convex + Convex Auth で作られた、行きたい／行った場所を管理する個人用アプリです。場所の基本情報に加えて、行く前メモ・行ったあとのフィードバック（複数回）を残せます。
 
-After the initial setup (<2 minutes) you'll have a working full-stack app using:
+### 主な機能
+- 場所の登録・編集（名称、住所、最寄り駅、ジャンル、都道府県、季節、気分、行動ステータス など）
+- 行く前メモ／URL の保存
+- 行ったあとのフィードバックを複数回保存
+	- ☆5段階評価
+	- また行きたいか（単数選択）
+	- 自由記述メモ（長文）
+- 詳細画面の「行った！」ボタンでステータスを更新し、フィードバック入力画面へ遷移
+- サインイン（Convex Auth）
 
-- Convex as your backend (database, server logic)
-- [React](https://react.dev/) as your frontend (web page interactivity)
-- [Next.js](https://nextjs.org/) for optimized web hosting and page routing
-- [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
-- [Convex Auth](https://labs.convex.dev/auth) for authentication
+### 画面とルーティング（一部）
+- 一覧: `/place/list`
+- 新規作成: `/place/new`
+- 詳細: `/place/detail?id=PLACE_ID`
+- 編集: `/place/[id]/edit`
+- 行ったあとのフィードバック: `/place/detail/feedback?id=PLACE_ID`
 
-## Get started
+## 開発環境のセットアップ
 
-If you just cloned this codebase and didn't use `npm create convex`, run:
+### 必要要件
+- Node.js 20 以降（推奨）
+- npm
 
-```
+### 初回セットアップと起動
+```bash
 npm install
 npm run dev
 ```
+`npm run dev` は Next.js（フロントエンド）と Convex（バックエンド）を並行起動します。Convex の初回起動時は CLI の指示に従ってログイン／プロジェクト作成を行ってください。
 
-If you're reading this README on GitHub and want to use this template, run:
+便利スクリプト:
+- Lint: `npm run lint`
+- 本番ビルド: `npm run build`
+- 本番起動: `npm start`
 
-```
-npm create convex@latest -- -t nextjs-convexauth
-```
+## 使い方の流れ
+1. 一覧（`/place/list`）または新規作成（`/place/new`）から場所を登録します。
+2. 詳細（`/place/detail?id=...`）で基本情報と「行く前メモ」を確認できます。
+3. 実際に訪問したら詳細画面の「行った！」を押します。
+	 - ステータスが「行った（また行きたい）」に更新され、フィードバック画面（`/place/detail/feedback?id=...`）へ遷移します。
+4. フィードバック画面で、☆5評価／また行きたいか／メモを入力して保存します。
+	 - フィードバックは複数回追加できます（訪問のたびに残せます）。
+5. 詳細画面の下部に、最新順で過去のフィードバックが表示されます。
 
-## Learn more
+補足:
+- 旧データの単一「行ったあとメモ」がある場合、最初のフィードバック追加時に自動的に履歴へ取り込まれます。
 
-To learn more about developing your project with Convex, check out:
+## データモデル（概要）
+`places` テーブルの主なフィールド:
+- 基本情報: `title`, `address`, `station`, `genre`, `prefecture`, `seasons`, `mood`, `status`
+- 行く前: `beforeMemo`, `beforeUrl`
+- 行ったあと（履歴）: `afterMemos[]`
+	- `memo`（文字列）
+	- `rating`（数値 1〜5）
+	- `wantToVisitAgain`（文字列: 例「また行きたい」「今回は十分」）
+	- `url`（任意）
+	- `createdAt`（数値: 追加時刻）
 
-- The [Tour of Convex](https://docs.convex.dev/get-started) for a thorough introduction to Convex principles.
-- The rest of [Convex docs](https://docs.convex.dev/) to learn about all Convex features.
-- [Stack](https://stack.convex.dev/) for in-depth articles on advanced topics.
-- [Convex Auth docs](https://labs.convex.dev/auth) for documentation on the Convex Auth library.
+## 認証
+Convex Auth を利用しています。サインイン画面は `/signin` です。
 
-## Configuring other authentication methods
-
-To configure different authentication methods, see [Configuration](https://labs.convex.dev/auth/config) in the Convex Auth docs.
-
-## Join the community
-
-Join thousands of developers building full-stack apps with Convex:
-
-- Join the [Convex Discord community](https://convex.dev/community) to get help in real-time.
-- Follow [Convex on GitHub](https://github.com/get-convex/), star and contribute to the open-source implementation of Convex.
+## メモ
+- このリポジトリは Convex のローカル開発を前提にしています。クラウドへデプロイする場合は Convex/Next.js 双方のドキュメントに従ってください。
+- 環境変数の追加が必要になった場合は `.env.local`（Next.js）や Convex の設定をご利用ください。
