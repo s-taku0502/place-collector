@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
 const DONE_STATUS = "行った（また行きたい）";
@@ -10,9 +11,9 @@ const DONE_STATUS = "行った（また行きたい）";
 export default function PlaceDetailPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const id = searchParams.get("id");
+    const id = searchParams.get("id") as Id<"places"> | null;
 
-    const place = useQuery(api.places.get, id ? { id: id as any } : undefined);
+    const place = useQuery(api.places.get, id ? { id } : "skip");
     const toggle = useMutation(api.places.toggleStatus);
 
     if (!id) return <main className="p-6">ID が指定されていません</main>;
