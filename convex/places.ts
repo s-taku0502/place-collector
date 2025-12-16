@@ -44,3 +44,15 @@ export const list = query({
       .collect();
   },
 });
+
+export const toggleVisited = mutation({
+  args: { id: v.id("places") },
+  handler: async (ctx, { id }) => {
+    const place = await ctx.db.get(id);
+    if (!place) return;
+
+    await ctx.db.patch(id, {
+      visited: !place.visited,
+    });
+  },
+});
