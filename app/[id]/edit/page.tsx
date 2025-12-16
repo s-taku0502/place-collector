@@ -3,7 +3,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useEffect, useState } from "react";
 
 export default function EditPage() {
     const params = useParams();
@@ -15,18 +14,6 @@ export default function EditPage() {
     const place = useQuery(api.places.get, id ? { id } : "skip");
     const updatePartial = useMutation(api.places.updatePartial);
 
-    const [title, setTitle] = useState("");
-    const [instagramUrl, setInstagramUrl] = useState("");
-    const [memo, setMemo] = useState<string>("");
-
-    useEffect(() => {
-        if (place) {
-            setTitle(place.title ?? "");
-            setInstagramUrl(place.instagramUrl ?? "");
-            setMemo(place.memo ?? "");
-        }
-    }, [place]);
-
     if (!id) return <main className="p-6">IDが不正です</main>;
     if (place === undefined) return <main className="p-6">読み込み中…</main>;
     if (place === null) return <main className="p-6">項目が見つかりません</main>;
@@ -34,7 +21,17 @@ export default function EditPage() {
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!place) return;
-        await updatePartial({ id: place._id, title, instagramUrl, memo: memo || undefined });
+        const formData = new FormData(e.currentTarget as HTMLFormElement);
+        const title = (formData.get("title") as string | null)?.trim() ?? "";
+        const instagramUrl = (formData.get("instagramUrl") as string | null)?.trim() ?? "";
+        const memo = (formData.get("memo") as string | null)?.trim() ?? "";
+
+        await updatePartial({
+            id: place._id,
+            title,
+            instagramUrl,
+            memo: memo || undefined,
+        });
         router.push("/");
     }
 
@@ -46,8 +43,8 @@ export default function EditPage() {
                     <label className="block text-sm font-medium text-gray-700">タイトル</label>
                     <input
                         className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        name="title"
+                        defaultValue={place.title ?? ""}
                         type="text"
                         placeholder="タイトル"
                     />
@@ -56,8 +53,8 @@ export default function EditPage() {
                     <label className="block text-sm font-medium text-gray-700">Instagram URL</label>
                     <input
                         className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                        value={instagramUrl}
-                        onChange={(e) => setInstagramUrl(e.target.value)}
+                        name="instagramUrl"
+                        defaultValue={place.instagramUrl ?? ""}
                         type="url"
                         placeholder="https://instagram.com/"
                     />
@@ -66,8 +63,8 @@ export default function EditPage() {
                     <label className="block text-sm font-medium text-gray-700">メモ</label>
                     <textarea
                         className="mt-1 w-full rounded-md border border-gray-300 p-2"
-                        value={memo}
-                        onChange={(e) => setMemo(e.target.value)}
+                        name="memo"
+                        defaultValue={place.memo ?? ""}
                     />
                 </div>
                 <div className="flex gap-2">

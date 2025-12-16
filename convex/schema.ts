@@ -21,6 +21,15 @@ export default defineSchema({
     beforeUrl: v.optional(v.string()), // InstagramまたはURL（行く前）
     afterMemo: v.optional(v.string()), // 行ったあとのメモ
     afterUrl: v.optional(v.string()), // InstagramまたはURL（行ったあと）
+    afterMemos: v.optional(
+      v.array(
+        v.object({
+          memo: v.string(),
+          url: v.optional(v.string()),
+          createdAt: v.number(),
+        })
+      )
+    ), // 複数の行ったあとのメモ
     rating: v.optional(v.number()), // 評価（1-5）
     // 旧フィールド（後方互換性）
     instagramUrl: v.optional(v.string()),
