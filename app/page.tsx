@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import Link from "next/link";
 
 export default function Home() {
   const places = useQuery(api.places.list, {});
@@ -44,6 +45,14 @@ export default function Home() {
               >
                 {p.visited ? "行った" : "行きたい"}
               </button>
+              <div className="mt-2">
+                <Link
+                  href={`/${p._id}/edit`}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  編集
+                </Link>
+              </div>
             </div>
           </div>
         ))}

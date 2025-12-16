@@ -56,3 +56,27 @@ export const toggleVisited = mutation({
     });
   },
 });
+
+export const get = query({
+  args: { id: v.id("places") },
+  handler: async (ctx, { id }) => {
+    const place = await ctx.db.get(id);
+    return place ?? null;
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("places"),
+    instagramUrl: v.string(),
+    title: v.string(),
+    memo: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, {
+      instagramUrl: args.instagramUrl,
+      title: args.title,
+      memo: args.memo,
+    });
+  },
+});
