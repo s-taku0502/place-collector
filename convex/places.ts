@@ -3,9 +3,16 @@ import { v } from "convex/values";
 
 export const add = mutation({
   args: {
-    instagramUrl: v.string(),
     title: v.string(),
-    memo: v.optional(v.string()),
+    address: v.string(),
+    station: v.optional(v.string()),
+    genre: v.string(),
+    prefecture: v.string(),
+    seasons: v.array(v.string()),
+    mood: v.string(),
+    status: v.string(),
+    beforeMemo: v.optional(v.string()),
+    beforeUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = (await ctx.auth.getUserIdentity())?.subject;
@@ -13,47 +20,32 @@ export const add = mutation({
 
     await ctx.db.insert("places", {
       userId,
-      instagramUrl: args.instagramUrl,
       title: args.title,
-      memo: args.memo,
-      visited: false,
+      address: args.address,
+      station: args.station,
+      genre: args.genre,
+      prefecture: args.prefecture,
+      seasons: args.seasons,
+      mood: args.mood,
+      status: args.status,
+      beforeMemo: args.beforeMemo,
+      beforeUrl: args.beforeUrl,
       createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
   },
 });
 
 export const list = query({
-  args: { visited: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
     const userId = (await ctx.auth.getUserIdentity())?.subject;
     if (!userId) return [];
 
-    if (args.visited === undefined) {
-      return await ctx.db
-        .query("places")
-        .withIndex("by_user", q => q.eq("userId", userId))
-        .collect();
-    }
-
     return await ctx.db
       .query("places")
-      .withIndex("by_user_visited", q =>
-        q.eq("userId", userId).eq("visited", args.visited!)
-
-      )
+      .withIndex("by_user", q => q.eq("userId", userId))
       .collect();
-  },
-});
-
-export const toggleVisited = mutation({
-  args: { id: v.id("places") },
-  handler: async (ctx, { id }) => {
-    const place = await ctx.db.get(id);
-    if (!place) return;
-
-    await ctx.db.patch(id, {
-      visited: !place.visited,
-    });
   },
 });
 
@@ -68,15 +60,35 @@ export const get = query({
 export const update = mutation({
   args: {
     id: v.id("places"),
-    instagramUrl: v.string(),
     title: v.string(),
-    memo: v.optional(v.string()),
+    address: v.string(),
+    station: v.optional(v.string()),
+    genre: v.string(),
+    prefecture: v.string(),
+    seasons: v.array(v.string()),
+    mood: v.string(),
+    status: v.string(),
+    beforeMemo: v.optional(v.string()),
+    beforeUrl: v.optional(v.string()),
+    afterMemo: v.optional(v.string()),
+    afterUrl: v.optional(v.string()),
+    rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, {
-      instagramUrl: args.instagramUrl,
-      title: args.title,
-      memo: args.memo,
+    const { id, ...updateData } = args;
+    await ctx.db.patch(id, {
+      ...updateData,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const toggleStatus = mutation({
+  args: { id: v.id("places"), status: v.string() },
+  handler: async (ctx, { id, status }) => {
+    await ctx.db.patch(id, {
+      status,
+      updatedAt: Date.now(),
     });
   },
 });
