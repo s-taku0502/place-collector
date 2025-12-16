@@ -29,14 +29,14 @@ export default function PlaceDetailPage() {
             place.afterMemos && place.afterMemos.length > 0
                 ? place.afterMemos
                 : place.afterMemo
-                  ? [
+                    ? [
                         {
                             memo: place.afterMemo,
                             url: place.afterUrl,
                             createdAt: place.updatedAt ?? place.createdAt ?? Date.now(),
                         },
                     ]
-                  : [];
+                    : [];
 
         return [...seed].sort((a, b) => b.createdAt - a.createdAt);
     }, [place]);
