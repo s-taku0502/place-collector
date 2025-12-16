@@ -15,6 +15,16 @@ import {
     DEFAULT_STATUS_INDEX,
 } from "@/lib/constants";
 
+// 住所から都道府県を自動判定する関数
+function extractPrefectureFromAddress(addressText: string): string {
+    for (const pref of PREFECTURES) {
+        if (addressText.startsWith(pref)) {
+            return pref;
+        }
+    }
+    return PREFECTURES[DEFAULT_PREFECTURE_INDEX]; // 判定失敗時はデフォルト
+}
+
 export default function NewPlace() {
     const router = useRouter();
     const add = useMutation(api.places.add);
@@ -105,7 +115,12 @@ export default function NewPlace() {
                                 type="text"
                                 placeholder="例：東京都渋谷区〇〇"
                                 value={address}
-                                onChange={(e) => setAddress(e.target.value)}
+                                onChange={(e) => {
+                                    setAddress(e.target.value);
+                                    // 住所から都道府県を自動判定
+                                    const newPref = extractPrefectureFromAddress(e.target.value);
+                                    setPrefecture(newPref);
+                                }}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
