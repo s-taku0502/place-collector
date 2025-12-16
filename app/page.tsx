@@ -36,7 +36,7 @@ export default function Home() {
             <h3 className="text-lg font-semibold text-gray-900">{p.title}</h3>
             <p className="mt-1 text-sm text-gray-600">
               <a
-                href={p.instagramUrl}
+                href={p.beforeUrl || "#"}
                 className="text-blue-600 underline decoration-blue-300 hover:text-blue-700"
               >
                 Instagram
@@ -47,7 +47,7 @@ export default function Home() {
                 className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
                 onClick={() => toggleVisited({ id: p._id })}
               >
-                {p.visited ? "✓ 行った" : "行きたい"}
+                {p.status ? "行った" : "行きたい"}
               </button>
               <Link
                 href={`/${p._id}/edit`}
