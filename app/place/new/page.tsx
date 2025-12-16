@@ -1,7 +1,7 @@
 "use client";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { api } from "@/convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import {
     PREFECTURES,
@@ -13,7 +13,7 @@ import {
     DEFAULT_GENRE_INDEX,
     DEFAULT_MOOD_INDEX,
     DEFAULT_STATUS_INDEX,
-} from "@/lib/constants";
+} from "../../../lib/constants";
 
 // 住所から都道府県を自動判定する関数
 function extractPrefectureFromAddress(addressText: string): string {
@@ -152,7 +152,7 @@ export default function NewPlace() {
                                 onChange={(e) => setGenre(e.target.value)}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                {GENRES.map(g => (
+                                {GENRES.map((g: string) => (
                                     <option key={g} value={g}>{g}</option>
                                 ))}
                             </select>
@@ -167,7 +167,7 @@ export default function NewPlace() {
                                 onChange={(e) => setPrefecture(e.target.value)}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                {PREFECTURES.map(p => (
+                                {PREFECTURES.map((p: string) => (
                                     <option key={p} value={p}>{p}</option>
                                 ))}
                             </select>
@@ -178,7 +178,7 @@ export default function NewPlace() {
                                 季節 <span className="text-red-500">*</span>（複数選択可）
                             </label>
                             <div className="flex flex-wrap gap-2">
-                                {SEASONS.map(season => (
+                                {SEASONS.map((season: string) => (
                                     <button
                                         key={season}
                                         type="button"
@@ -203,7 +203,7 @@ export default function NewPlace() {
                                 onChange={(e) => setMood(e.target.value)}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                {MOODS.map(m => (
+                                {MOODS.map((m: string) => (
                                     <option key={m} value={m}>{m}</option>
                                 ))}
                             </select>
@@ -218,7 +218,7 @@ export default function NewPlace() {
                                 onChange={(e) => setStatus(e.target.value)}
                                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
-                                {STATUSES.map(s => (
+                                {STATUSES.map((s: string) => (
                                     <option key={s} value={s}>{s}</option>
                                 ))}
                             </select>
