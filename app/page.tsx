@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function Home() {
   const router = useRouter();
   const places = useQuery(api.places.list, {});
-  const toggleVisited = useMutation(api.places.toggleVisited); // 行った・行ってないを切り替える
+  const toggleVisited = useMutation(api.places.toggleStatus); // 行った・行ってないを切り替える
 
 
   return (
@@ -45,9 +45,17 @@ export default function Home() {
             <div className="mt-4 flex gap-2">
               <button
                 className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95"
-                onClick={() => toggleVisited({ id: p._id })}
+                onClick={() =>
+                  toggleVisited({
+                    id: p._id,
+                    status:
+                      p.status === "まだ行ってない"
+                        ? "行った（また行きたい）"
+                        : "まだ行ってない",
+                  })
+                }
               >
-                {p.status ? "行った" : "行きたい"}
+                {p.status === "まだ行ってない" ? "行きたい" : "✓ 行った"}
               </button>
               <Link
                 href={`/${p._id}/edit`}

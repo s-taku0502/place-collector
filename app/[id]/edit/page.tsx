@@ -13,7 +13,7 @@ export default function EditPage() {
 
     // useQuery をスキップする場合は undefined を渡す
     const place = useQuery(api.places.get, id ? { id } : undefined);
-    const update = useMutation(api.places.update);
+    const updatePartial = useMutation(api.places.updatePartial);
 
     const [title, setTitle] = useState("");
     const [instagramUrl, setInstagramUrl] = useState("");
@@ -33,7 +33,7 @@ export default function EditPage() {
 
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
-        await update({ id: place._id, title, instagramUrl, memo: memo || undefined });
+        await updatePartial({ id: place._id, title, beforeUrl: instagramUrl, beforeMemo: memo || undefined, instagramUrl });
         router.push("/");
     }
 

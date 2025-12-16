@@ -83,6 +83,37 @@ export const update = mutation({
   },
 });
 
+// 部分更新用（フォームからの一部フィールド更新に対応）
+export const updatePartial = mutation({
+  args: {
+    id: v.id("places"),
+    title: v.optional(v.string()),
+    address: v.optional(v.string()),
+    station: v.optional(v.string()),
+    genre: v.optional(v.string()),
+    prefecture: v.optional(v.string()),
+    seasons: v.optional(v.array(v.string())),
+    mood: v.optional(v.string()),
+    status: v.optional(v.string()),
+    beforeMemo: v.optional(v.string()),
+    beforeUrl: v.optional(v.string()),
+    afterMemo: v.optional(v.string()),
+    afterUrl: v.optional(v.string()),
+    rating: v.optional(v.number()),
+    instagramUrl: v.optional(v.string()), // 旧フィールド互換
+    memo: v.optional(v.string()), // 旧フィールド互換
+  },
+  handler: async (ctx, args) => {
+    const { id, ...rest } = args;
+    // undefined を除外したパッチを作成
+    const patch: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(rest)) {
+      if (v !== undefined) patch[k] = v;
+    }
+    await ctx.db.patch(id, { ...patch, updatedAt: Date.now() });
+  },
+});
+
 export const toggleStatus = mutation({
   args: { id: v.id("places"), status: v.string() },
   handler: async (ctx, { id, status }) => {
