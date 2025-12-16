@@ -21,6 +21,7 @@ export default function PlaceDetailPage() {
     const [afterMemoInput, setAfterMemoInput] = useState("");
     const [afterMemoUrl, setAfterMemoUrl] = useState("");
     const [isSubmittingMemo, setIsSubmittingMemo] = useState(false);
+    const [isMarkingDone, setIsMarkingDone] = useState(false);
 
     const afterMemos = useMemo(() => {
         if (!place) return [];
@@ -45,25 +46,13 @@ export default function PlaceDetailPage() {
     if (place === undefined) return <main className="p-6">読み込み中…</main>;
     if (place === null) return <main className="p-6">データが見つかりません</main>;
 
-    const markDone = () => {
-        void toggle({ id: place._id, status: DONE_STATUS });
-    };
-
-    const handleAddAfterMemo = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (!afterMemoInput.trim()) return;
-
-        setIsSubmittingMemo(true);
+    const markDone = async () => {
+        setIsMarkingDone(true);
         try {
-            await addAfterMemo({
-                id: place._id,
-                memo: afterMemoInput.trim(),
-                url: afterMemoUrl.trim() || undefined,
-            });
-            setAfterMemoInput("");
-            setAfterMemoUrl("");
+            await toggle({ id: place._id, status: DONE_STATUS });
+            router.push(`/place/detail/feedback?id=${place._id}`);
         } finally {
-            setIsSubmittingMemo(false);
+            setIsMarkingDone(false);
         }
     };
 
@@ -85,10 +74,11 @@ export default function PlaceDetailPage() {
                     </div>
                     <div className="flex flex-col gap-2">
                         <button
-                            onClick={markDone}
-                            className="rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg hover:scale-105 active:scale-95"
+                            onClick={() => void markDone()}
+                            disabled={isMarkingDone}
+                            className="rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                            行った！にする
+                            {isMarkingDone ? "遷移中…" : "行った！"}
                         </button>
                         <Link
                             href={`/place/${place._id}/edit`}
@@ -123,32 +113,6 @@ export default function PlaceDetailPage() {
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         <h2 className="text-lg font-semibold text-gray-900">行ったあとメモ</h2>
-                        <form onSubmit={handleAddAfterMemo} className="mt-3 space-y-2">
-                            <textarea
-                                name="afterMemo"
-                                className="w-full rounded-md border border-gray-200 p-2 text-sm focus:border-gray-400 focus:outline-none"
-                                placeholder="行ったあとに感じたことや覚え書きを追加"
-                                value={afterMemoInput}
-                                onChange={(e) => setAfterMemoInput(e.target.value)}
-                                rows={3}
-                            />
-                            <input
-                                name="afterUrl"
-                                className="w-full rounded-md border border-gray-200 p-2 text-sm focus:border-gray-400 focus:outline-none"
-                                placeholder="参考リンク (任意)"
-                                value={afterMemoUrl}
-                                onChange={(e) => setAfterMemoUrl(e.target.value)}
-                                type="url"
-                            />
-                            <button
-                                type="submit"
-                                disabled={isSubmittingMemo || !afterMemoInput.trim()}
-                                className="w-full rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg hover:scale-[1.01] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {isSubmittingMemo ? "追加中…" : "メモを追加"}
-                            </button>
-                        </form>
-
                         <div className="mt-4 space-y-3">
                             {afterMemos.length === 0 && (
                                 <p className="text-sm text-gray-600">まだメモがありません</p>
@@ -156,6 +120,10 @@ export default function PlaceDetailPage() {
                             {afterMemos.map((memo) => (
                                 <div key={`${memo.createdAt}-${memo.memo.slice(0, 8)}`} className="rounded-lg border border-gray-100 bg-gray-50 p-3 shadow-inner">
                                     <p className="whitespace-pre-line text-sm text-gray-800">{memo.memo}</p>
+                                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
+                                        {memo.rating && <span>評価: {memo.rating} / 5</span>}
+                                        {memo.wantToVisitAgain && <span>また行きたい度: {memo.wantToVisitAgain}</span>}
+                                    </div>
                                     <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
                                         <span>
                                             {new Date(memo.createdAt).toLocaleString("ja-JP", {

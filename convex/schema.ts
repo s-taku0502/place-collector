@@ -26,6 +26,8 @@ export default defineSchema({
         v.object({
           memo: v.string(),
           url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
           createdAt: v.number(),
         })
       )

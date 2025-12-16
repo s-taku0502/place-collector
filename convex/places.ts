@@ -18,6 +18,8 @@ export const add = mutation({
         v.object({
           memo: v.string(),
           url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
           createdAt: v.number(),
         })
       )
@@ -105,6 +107,8 @@ export const update = mutation({
         v.object({
           memo: v.string(),
           url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
           createdAt: v.number(),
         })
       )
@@ -141,6 +145,8 @@ export const updatePartial = mutation({
         v.object({
           memo: v.string(),
           url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
           createdAt: v.number(),
         })
       )
@@ -177,8 +183,10 @@ export const addAfterMemo = mutation({
     id: v.id("places"),
     memo: v.string(),
     url: v.optional(v.string()),
+    rating: v.number(),
+    wantToVisitAgain: v.string(),
   },
-  handler: async (ctx, { id, memo, url }) => {
+  handler: async (ctx, { id, memo, url, rating, wantToVisitAgain }) => {
     const place = await ctx.db.get(id);
     if (!place) throw new Error("Not found");
 
@@ -192,13 +200,18 @@ export const addAfterMemo = mutation({
             {
               memo: place.afterMemo,
               url: place.afterUrl,
+              rating: place.rating,
+              wantToVisitAgain: undefined,
               createdAt: place.updatedAt ?? place.createdAt ?? createdAt,
             },
           ]
         : existingMemos;
 
     await ctx.db.patch(id, {
-      afterMemos: [...seededMemos, { memo, url, createdAt }],
+      afterMemos: [
+        ...seededMemos,
+        { memo, url, rating, wantToVisitAgain, createdAt },
+      ],
       updatedAt: createdAt,
     });
   },
