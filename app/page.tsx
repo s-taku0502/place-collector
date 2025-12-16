@@ -1,11 +1,12 @@
 "use client";
 import { useQuery, useMutation } from "convex/react";
+import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 
 export default function Home() {
+  const router = useRouter();
   const places = useQuery(api.places.list, {});
-  const add = useMutation(api.places.add);
   const toggleVisited = useMutation(api.places.toggleVisited); // 行った・行ってないを切り替える
 
 
@@ -15,10 +16,7 @@ export default function Home() {
         {/* 追加ボタン */}
         <button
           onClick={() =>
-            add({
-              instagramUrl: "https://www.instagram.com/",
-              title: "新しい場所",
-            })
+            router.push("/place/new")
           }
           className="mb-8 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
         >
