@@ -13,6 +13,17 @@ export const add = mutation({
     status: v.string(),
     beforeMemo: v.optional(v.string()),
     beforeUrl: v.optional(v.string()),
+    afterMemos: v.optional(
+      v.array(
+        v.object({
+          memo: v.string(),
+          url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
+          createdAt: v.number(),
+        })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     const userId = (await ctx.auth.getUserIdentity())?.subject;
@@ -30,6 +41,7 @@ export const add = mutation({
       status: args.status,
       beforeMemo: args.beforeMemo,
       beforeUrl: args.beforeUrl,
+      afterMemos: args.afterMemos ?? [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
@@ -90,6 +102,17 @@ export const update = mutation({
     status: v.string(),
     beforeMemo: v.optional(v.string()),
     beforeUrl: v.optional(v.string()),
+    afterMemos: v.optional(
+      v.array(
+        v.object({
+          memo: v.string(),
+          url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
+          createdAt: v.number(),
+        })
+      )
+    ),
     afterMemo: v.optional(v.string()),
     afterUrl: v.optional(v.string()),
     rating: v.optional(v.number()),
@@ -117,6 +140,17 @@ export const updatePartial = mutation({
     status: v.optional(v.string()),
     beforeMemo: v.optional(v.string()),
     beforeUrl: v.optional(v.string()),
+    afterMemos: v.optional(
+      v.array(
+        v.object({
+          memo: v.string(),
+          url: v.optional(v.string()),
+          rating: v.optional(v.number()),
+          wantToVisitAgain: v.optional(v.string()),
+          createdAt: v.number(),
+        })
+      )
+    ),
     afterMemo: v.optional(v.string()),
     afterUrl: v.optional(v.string()),
     rating: v.optional(v.number()),
@@ -140,6 +174,45 @@ export const toggleStatus = mutation({
     await ctx.db.patch(id, {
       status,
       updatedAt: Date.now(),
+    });
+  },
+});
+
+export const addAfterMemo = mutation({
+  args: {
+    id: v.id("places"),
+    memo: v.string(),
+    url: v.optional(v.string()),
+    rating: v.number(),
+    wantToVisitAgain: v.string(),
+  },
+  handler: async (ctx, { id, memo, url, rating, wantToVisitAgain }) => {
+    const place = await ctx.db.get(id);
+    if (!place) throw new Error("Not found");
+
+    const createdAt = Date.now();
+
+    const existingMemos = place.afterMemos ?? [];
+    const seededMemos =
+      existingMemos.length === 0 && place.afterMemo
+        ? [
+            ...existingMemos,
+            {
+              memo: place.afterMemo,
+              url: place.afterUrl,
+              rating: place.rating,
+              wantToVisitAgain: undefined,
+              createdAt: place.updatedAt ?? place.createdAt ?? createdAt,
+            },
+          ]
+        : existingMemos;
+
+    await ctx.db.patch(id, {
+      afterMemos: [
+        ...seededMemos,
+        { memo, url, rating, wantToVisitAgain, createdAt },
+      ],
+      updatedAt: createdAt,
     });
   },
 });
