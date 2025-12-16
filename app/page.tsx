@@ -58,7 +58,7 @@ export default function Home() {
                 {p.status === "まだ行ってない" ? "行きたい" : "✓ 行った"}
               </button>
               <Link
-                href={`/${p._id}/edit`}
+                href={`/place/${p._id}/edit`}
                 className="rounded-lg border-2 border-gray-200 px-4 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-400 hover:bg-gray-100 active:scale-95"
               >
                 編集
