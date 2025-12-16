@@ -49,6 +49,26 @@ export const list = query({
   },
 });
 
+export const listByStatus = query({
+  args: { status: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const userId = (await ctx.auth.getUserIdentity())?.subject;
+    if (!userId) return [];
+
+    if (!args.status) {
+      return await ctx.db
+        .query("places")
+        .withIndex("by_user", q => q.eq("userId", userId))
+        .collect();
+    }
+
+    return await ctx.db
+      .query("places")
+      .withIndex("by_user_status", q => q.eq("userId", userId).eq("status", args.status))
+      .collect();
+  },
+});
+
 export const get = query({
   args: { id: v.id("places") },
   handler: async (ctx, { id }) => {
