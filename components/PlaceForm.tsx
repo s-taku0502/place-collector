@@ -48,17 +48,20 @@ function extractPrefectureFromAddress(addressText: string): string {
   return PREFECTURES[DEFAULT_PREFECTURE_INDEX];
 }
 
+interface PlaceFormProps {
+  initialValues?: Partial<PlaceFormValues>;
+  onSubmit: (values: PlaceFormValues) => Promise<void> | void;
+  submitLabel: string;
+  onCancel?: () => void;
+}
+
 export default function PlaceForm({
   initialValues,
   onSubmit,
   submitLabel,
   onCancel,
-}: {
-  initialValues?: Partial<PlaceFormValues>;
-  onSubmit: (values: PlaceFormValues) => Promise<void> | void;
-  submitLabel: string;
-  onCancel?: () => void;
-}) {
+}: PlaceFormProps) {
+
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [address, setAddress] = useState(initialValues?.address ?? "");
   const [station, setStation] = useState(initialValues?.station ?? "");
