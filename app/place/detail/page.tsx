@@ -87,7 +87,8 @@ export default function PlaceDetailPage() {
                             編集
                         </Link>
                         <button
-                            onClick={() => router.back()}
+                            // onClick={() => router.back()}
+                            onClick={() => router.push("/place")}
                             className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                             戻る
