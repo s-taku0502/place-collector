@@ -9,10 +9,10 @@ const isProtectedRoute = createRouteMatcher(["/", "/server"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   if (isSignInPage(request) && (await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/place/list");
+    return nextjsMiddlewareRedirect(request, "/place");
   }
   if (request.nextUrl.pathname === "/" && (await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/place/list");
+    return nextjsMiddlewareRedirect(request, "/place");
   }
   if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/signin");
