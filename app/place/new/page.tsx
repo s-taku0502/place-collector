@@ -9,19 +9,6 @@ export default function NewPlace() {
     const add = useMutation(api.places.add);
 
     const handleSubmit = async (values: PlaceFormValues) => {
-        if (!values.title) {
-            alert("名称は必須です");
-            return;
-        }
-        if (!values.address) {
-            alert("住所は必須です");
-            return;
-        }
-        if (!values.seasons.length) {
-            alert("季節を選択してください");
-            return;
-        }
-
         try {
             await add(values);
             router.push("/");
