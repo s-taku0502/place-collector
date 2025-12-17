@@ -88,7 +88,7 @@ export default function PlaceFeedbackPage() {
                         <div>
                             <p className="text-sm font-medium text-gray-800">また行きたい？（単数選択）</p>
                             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                                {["また行きたい", "今回は十分"].map((choice) => (
+                                {["また行きたい", "今回で十分"].map((choice) => (
                                     <label
                                         key={choice}
                                         className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm shadow-sm transition ${wantToVisitAgain === choice
@@ -111,7 +111,7 @@ export default function PlaceFeedbackPage() {
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-gray-800">メモ（自由入力）</label>
+                            <label className="text-sm font-medium text-gray-800">感想など</label>
                             <textarea
                                 className="mt-2 w-full rounded-lg border border-gray-200 p-3 text-sm shadow-sm focus:border-gray-400 focus:outline-none"
                                 placeholder="印象に残ったこと、良かった点、気になった点など"
