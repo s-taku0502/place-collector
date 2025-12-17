@@ -36,7 +36,7 @@ export default function SignInPage() {
         {/* アプリアイコン */}
         <div className="flex justify-center mb-2">
           <Image
-            src="/convex.svg"
+            src="/place-collector-icon.png"
             alt="アプリアイコン"
             width={96}
             height={96}
@@ -44,17 +44,41 @@ export default function SignInPage() {
           />
         </div>
 
-        {/* タイトル（ログイン画面のみ） */}
-        {flow === "signIn" && (
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold">アプリ名</h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              へようこそ！
-              <br />
-              さあ、楽しい時間を作りにいこう
-            </p>
-          </div>
-        )}
+        {/* モード切替 */}
+        <div className="flex justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFlow("signIn")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${flow === "signIn"
+              ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+              : "bg-white text-slate-700 border-slate-300 hover:border-slate-400 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600"
+            }`}
+          >
+            ログイン
+          </button>
+          <button
+            type="button"
+            onClick={() => setFlow("signUp")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${flow === "signUp"
+              ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+              : "bg-white text-slate-700 border-slate-300 hover:border-slate-400 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600"
+            }`}
+          >
+            新規登録
+          </button>
+        </div>
+
+        {/* タイトル */}
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold">
+            {flow === "signIn" ? "ログイン" : "新規登録"}
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {flow === "signIn"
+              ? "アカウントにサインインして続けましょう"
+              : "必要事項を入力してアカウントを作成します"}
+          </p>
+        </div>
 
         {/* ユーザーID（新規登録のみ） */}
         {flow === "signUp" && (
@@ -127,33 +151,16 @@ export default function SignInPage() {
           disabled={loading}
           className="bg-slate-300 text-black py-2 rounded disabled:opacity-50 dark:bg-slate-600 dark:text-white dark:hover:bg-slate-500 transition-colors"
         >
-          {flow === "signIn" ? "ログイン" : "登録"}
+          {flow === "signIn" ? "ログインする" : "新規登録する"}
         </button>
 
-        {/* サブボタン */}
-        {flow === "signIn" ? (
-          <>
-            <button
-              type="button"
-              className="bg-slate-200 py-2 rounded dark:bg-slate-700 dark:text-white transition-colors"
-            >
-              パスワード再設定
-            </button>
-            <button
-              type="button"
-              className="bg-slate-200 py-2 rounded dark:bg-slate-700 dark:text-white transition-colors"
-              onClick={() => setFlow("signUp")}
-            >
-              新規登録
-            </button>
-          </>
-        ) : (
+        {/* サブアクション（タブと重複しない範囲で最小限に） */}
+        {flow === "signIn" && (
           <button
             type="button"
             className="bg-slate-200 py-2 rounded dark:bg-slate-700 dark:text-white transition-colors"
-            onClick={() => setFlow("signIn")}
           >
-            ログイン画面へ
+            パスワード再設定
           </button>
         )}
       </form>
