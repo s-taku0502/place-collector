@@ -1,16 +1,23 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const WANT_STATUS = "まだ行ってない";
+const DONE_STATUS = "行った（また行きたい）";
 
 export default function WantListPage() {
     const places = useQuery(api.places.listByStatus, { status: WANT_STATUS });
+    const toggle = useMutation(api.places.toggleStatus);
     const router = useRouter();
 
+    const markDone = async (placeId: Id<"places">) => {
+        await toggle({ id: placeId, status: DONE_STATUS });
+        router.push(`/place/${placeId}/detail/feedback`);
+    };
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
@@ -42,7 +49,7 @@ export default function WantListPage() {
                             <div className="mt-4 flex gap-2">
                                 <button
                                     className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-green-600 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg hover:scale-105 active:scale-95"
-                                    onClick={() => router.push(`/place/${p._id}/detail/feedback`)}
+                                    onClick={() => void markDone(p._id)}
                                 >
                                     行った！
                                 </button>
