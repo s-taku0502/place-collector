@@ -1,26 +1,19 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useParams, useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 
-const DONE_STATUS = "行った（また行きたい）";
 
 export default function PlaceDetailPage() {
-    const searchParams = useSearchParams();
+    const params = useParams<{ id: string }>();
     const router = useRouter();
-    const id = searchParams.get("id") as Id<"places"> | null;
+    const id = (params?.id as Id<"places">) ?? null;
 
     const place = useQuery(api.places.get, id ? { id } : "skip");
-    const toggle = useMutation(api.places.toggleStatus);
-    const addAfterMemo = useMutation(api.places.addAfterMemo);
-
-    const [afterMemoInput, setAfterMemoInput] = useState("");
-    const [afterMemoUrl, setAfterMemoUrl] = useState("");
-    const [isSubmittingMemo, setIsSubmittingMemo] = useState(false);
     const [isMarkingDone, setIsMarkingDone] = useState(false);
 
     const afterMemos = useMemo(() => {
@@ -49,8 +42,7 @@ export default function PlaceDetailPage() {
     const markDone = async () => {
         setIsMarkingDone(true);
         try {
-            await toggle({ id: place._id, status: DONE_STATUS });
-            router.push(`/place/detail/feedback?id=${place._id}`);
+            router.push(`/place/${place._id}/detail/feedback`);
         } finally {
             setIsMarkingDone(false);
         }

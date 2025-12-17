@@ -1,15 +1,15 @@
 "use client";
 
-import { useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 
 export default function PlaceFeedbackPage() {
-    const searchParams = useSearchParams();
+    const params = useParams<{ id: string }>();
     const router = useRouter();
-    const id = searchParams.get("id") as Id<"places"> | null;
+    const id = (params?.id as Id<"places">) ?? null;
 
     const place = useQuery(api.places.get, id ? { id } : "skip");
     const addAfterMemo = useMutation(api.places.addAfterMemo);
@@ -36,7 +36,7 @@ export default function PlaceFeedbackPage() {
                 wantToVisitAgain,
                 url: undefined,
             });
-            router.push(`/place/detail?id=${place._id}`);
+            router.push(`/place/${place._id}/detail`);
         } finally {
             setIsSubmitting(false);
         }
