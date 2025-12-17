@@ -13,7 +13,7 @@ Next.js + Convex + Convex Auth で作られた、行きたい／行った場所�
 - サインイン（Convex Auth）
 
 ### 画面とルーティング（一部）
-- 一覧: `/place/list`
+- 一覧: `/place`
 - 新規作成: `/place/new`
 - 詳細: `/place/detail?id=PLACE_ID`
 - 編集: `/place/[id]/edit`
@@ -38,7 +38,7 @@ npm run dev
 - 本番起動: `npm start`
 
 ## 使い方の流れ
-1. 一覧（`/place/list`）または新規作成（`/place/new`）から場所を登録します。
+1. 一覧（`/place`）または新規作成（`/place/new`）から場所を登録します。
 2. 詳細（`/place/detail?id=...`）で基本情報と「行く前メモ」を確認できます。
 3. 実際に訪問したら詳細画面の「行った！」を押します。
 	 - ステータスが「行った（また行きたい）」に更新され、フィードバック画面（`/place/detail/feedback?id=...`）へ遷移します。

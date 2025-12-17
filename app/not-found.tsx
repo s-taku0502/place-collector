@@ -25,7 +25,7 @@ export default function NotFound() {
 
                 <div className="flex gap-4 justify-center">
                     <Link
-                        href="/place/list"
+                        href="/place"
                         className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95"
                     >
                         ホームに戻る
