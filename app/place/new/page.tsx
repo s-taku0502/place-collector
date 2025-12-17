@@ -3,6 +3,7 @@ import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../convex/_generated/api";
 import PlaceForm, { getDefaultPlaceFormValues, PlaceFormValues } from "../../../components/PlaceForm";
+import { STATUSES, DEFAULT_STATUS_INDEX } from "../../../lib/constants";
 
 export default function NewPlace() {
     const router = useRouter();
@@ -10,7 +11,10 @@ export default function NewPlace() {
 
     const handleSubmit = async (values: PlaceFormValues) => {
         try {
-            await add(values);
+            await add({
+                ...values,
+                status: STATUSES[DEFAULT_STATUS_INDEX],
+            });
             router.push("/");
         } catch (err) {
             alert("追加に失敗しました");
