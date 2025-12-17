@@ -268,11 +268,11 @@ export default function PlaceForm({
                     </select>
                 </div>
 
-                <div className="mt-4">
+                {/* <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         行動 <span className="text-red-500">*</span>
                     </label>
-                    {/* <select
+                    <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -280,8 +280,8 @@ export default function PlaceForm({
                         {STATUSES.map((s: string) => (
                             <option key={s} value={s}>{s}</option>
                         ))}
-                    </select> */}
-                </div>
+                    </select>
+                </div> */}
             </div>
 
             {/* 行く前のメモ */}
