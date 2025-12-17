@@ -6,11 +6,11 @@ import {
     GENRES,
     SEASONS,
     MOODS,
-    STATUSES,
+    // STATUSES,
     DEFAULT_PREFECTURE_INDEX,
     DEFAULT_GENRE_INDEX,
     DEFAULT_MOOD_INDEX,
-    DEFAULT_STATUS_INDEX,
+    // DEFAULT_STATUS_INDEX,
 } from "../lib/constants";
 
 export type PlaceFormValues = {
@@ -21,7 +21,7 @@ export type PlaceFormValues = {
     prefecture: string;
     seasons: string[];
     mood: string;
-    status: string;
+    // status: string;
     beforeMemo?: string;
     beforeUrl?: string;
 };
@@ -35,7 +35,6 @@ export function getDefaultPlaceFormValues(): PlaceFormValues {
         prefecture: PREFECTURES[DEFAULT_PREFECTURE_INDEX],
         seasons: [],
         mood: MOODS[DEFAULT_MOOD_INDEX],
-        status: STATUSES[DEFAULT_STATUS_INDEX],
         beforeMemo: "",
         beforeUrl: "",
     };
@@ -93,7 +92,7 @@ export default function PlaceForm({
     const [prefecture, setPrefecture] = useState(initialValues?.prefecture ?? PREFECTURES[DEFAULT_PREFECTURE_INDEX]);
     const [selectedSeasons, setSelectedSeasons] = useState<string[]>(initialValues?.seasons ?? []);
     const [mood, setMood] = useState(initialValues?.mood ?? MOODS[DEFAULT_MOOD_INDEX]);
-    const [status, setStatus] = useState(initialValues?.status ?? STATUSES[DEFAULT_STATUS_INDEX]);
+    // const [status, setStatus] = useState(initialValues?.status ?? STATUSES[DEFAULT_STATUS_INDEX]);
     const [beforeMemo, setBeforeMemo] = useState(initialValues?.beforeMemo ?? "");
     const [beforeUrl, setBeforeUrl] = useState(initialValues?.beforeUrl ?? "");
     const [errors, setErrors] = useState<PlaceFormErrors>({});
@@ -116,7 +115,7 @@ export default function PlaceForm({
             prefecture,
             seasons: selectedSeasons,
             mood,
-            status,
+            // status,
             beforeMemo: beforeMemo.trim() || undefined,
             beforeUrl: beforeUrl.trim() || undefined,
         };
@@ -273,7 +272,7 @@ export default function PlaceForm({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         行動 <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    {/* <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                         className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -281,7 +280,7 @@ export default function PlaceForm({
                         {STATUSES.map((s: string) => (
                             <option key={s} value={s}>{s}</option>
                         ))}
-                    </select>
+                    </select> */}
                 </div>
             </div>
 

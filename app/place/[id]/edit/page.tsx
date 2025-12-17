@@ -28,7 +28,7 @@ export default function EditPage() {
             prefecture: values.prefecture || undefined,
             seasons: values.seasons || undefined,
             mood: values.mood || undefined,
-            status: values.status || undefined,
+            // status: values.status || undefined,
             beforeMemo: values.beforeMemo || undefined,
             beforeUrl: values.beforeUrl || undefined,
         });
@@ -48,7 +48,7 @@ export default function EditPage() {
                         prefecture: place.prefecture ?? undefined,
                         seasons: place.seasons ?? [],
                         mood: place.mood ?? undefined,
-                        status: place.status ?? undefined,
+                        // status: place.status ?? undefined,
                         beforeMemo: place.beforeMemo ?? (place as unknown as { memo?: string }).memo ?? "",
                         beforeUrl: place.beforeUrl ?? (place as unknown as { instagramUrl?: string }).instagramUrl ?? "",
                     }}
