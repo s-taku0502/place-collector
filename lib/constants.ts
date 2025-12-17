@@ -12,7 +12,7 @@ export const PREFECTURES = [
 ];
 
 // ジャンル一覧
-export const GENRES = ["飲食店", "レジャー", "観光地", "美術館", "公園", "温泉", "ショップ"];
+export const GENRES = ["飲食店", "レジャー", "観光地", "美術館", "公園", "温泉", "ショップ", "その他"];
 
 // 季節一覧
 export const SEASONS = ["春", "夏", "秋", "冬", "通年"];
