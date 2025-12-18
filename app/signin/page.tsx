@@ -3,14 +3,29 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import { validateUserIdentifier } from "@/lib/ng_list";
 
+const toFriendlyError = (err: unknown): string => {
+  const message = err instanceof Error ? err.message : "";
+
+  if (message.includes("ユーザーIDは既に使用されています")) {
+    return "このユーザーIDは既に使用されています。他のIDをお試しください。";
+  }
+  if (message.includes("ユーザーIDは空にできません")) {
+    return "ユーザーIDを入力してください。";
+  }
+  if (message.toLowerCase().includes("password")) {
+    // Convexのpasswordプロバイダは汎用的なメッセージを返すため、簡潔に案内する
+    return "メールアドレスまたはパスワードが正しくありません。";
+  }
+
+  return "エラーが発生しました。時間をおいて再度お試しください。";
+};
+
 export default function SignInPage() {
   const { signIn } = useAuthActions();
-  const router = useRouter();
   const assertUserIdentifierAvailable = useMutation(api.users.assertUserIdentifierAvailable);
   const updateUserProfile = useMutation(api.users.updateUserProfile);
 
@@ -33,14 +48,20 @@ export default function SignInPage() {
           const normalizedUserIdentifier = desiredUserIdentifier.trim();
 
           if (flow === "signUp") {
+            const password = (formData.get("password") || "") as string;
+            const confirmPassword = (formData.get("confirmPassword") || "") as string;
+            if (password !== confirmPassword) {
+              setError("パスワードが一致しません。もう一度確認してください。");
+              setLoading(false);
+              return;
+            }
+          }
+
+          if (flow === "signUp") {
             try {
               await assertUserIdentifierAvailable({ userIdentifier: normalizedUserIdentifier });
             } catch (err: unknown) {
-              setError(
-                err instanceof Error
-                  ? err.message
-                  : "ユーザーIDの確認中にエラーが発生しました"
-              );
+              setError(toFriendlyError(err));
               setLoading(false);
               return;
             }
@@ -52,18 +73,14 @@ export default function SignInPage() {
               try {
                 await updateUserProfile({ userIdentifier: normalizedUserIdentifier });
               } catch (err: unknown) {
-                setError(
-                  err instanceof Error
-                    ? err.message
-                    : "ユーザーIDの初期設定に失敗しました"
-                );
+                setError(toFriendlyError(err));
                 setLoading(false);
                 return;
               }
             }
             // router.push("/");
           } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "ログインに失敗しました");
+            setError(toFriendlyError(err));
             setLoading(false);
             return;
           }
