@@ -157,7 +157,7 @@ export default function MyPage() {
                             </div>
                         </div>
 
-                        {/* ユーザーID（重複不可／一度のみ設定可能） */}
+                        {/* ユーザーID（重複不可／登録時のみ設定可能） */}
                         <div>
                             <label
                                 htmlFor="userIdentifier"
@@ -165,29 +165,12 @@ export default function MyPage() {
                             >
                                 ユーザーID（重複不可）
                             </label>
-                            {isEditing && !user.userIdentifier ? (
-                                <div>
-                                    <input
-                                        type="text"
-                                        id="userIdentifier"
-                                        value={userIdentifier}
-                                        onChange={(e) => setUserIdentifier(e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="ユーザーIDを入力（英数字、アンダースコア）"
-                                        pattern="[a-zA-Z0-9_]+"
-                                    />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        他のユーザーと重複しないIDを設定してください。設定は一度のみで、後から変更できません。
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="px-4 py-2 bg-gray-100 rounded">
-                                    {userIdentifier || "未設定"}
-                                </div>
-                            )}
-                            {user.userIdentifier && (
-                                <p className="mt-1 text-xs text-gray-500">設定済みのユーザーIDは変更できません。</p>
-                            )}
+                            <div className="px-4 py-2 bg-gray-100 rounded">
+                                {userIdentifier || "未設定"}
+                            </div>
+                            <p className="mt-1 text-xs text-gray-500">
+                                ユーザーIDは登録時のみ設定可能です。変更はできません。
+                            </p>
                         </div>
 
                         {/* ユーザー名 */}
