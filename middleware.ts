@@ -7,11 +7,6 @@ import {
 const isPublicPage = createRouteMatcher(["/signin"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  // ログイン済みでサインインページにアクセスした場合、/place にリダイレクト
-  if (isPublicPage(request) && (await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/place");
-  }
-  
   // 未ログインで公開ページ以外にアクセスした場合、/signin にリダイレクト
   if (!isPublicPage(request) && !(await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/signin");

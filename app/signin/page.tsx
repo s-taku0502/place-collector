@@ -71,10 +71,10 @@ export default function SignInPage() {
       // プロフィール更新が不要/完了したら遷移
       if (flow === "signUp") {
         if (profileUpdateDone) {
-          router.replace("/place");
+          router.push("/mypage");
         }
       } else if (flow === "signIn") {
-        router.replace("/place");
+        router.push("/place");
       }
     };
 
