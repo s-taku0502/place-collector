@@ -22,8 +22,8 @@ export default function Header() {
     // ページに応じたタイトルを取得
     const getPageTitle = () => {
         if (pathname === "/") return "行きたい場所リスト";
+        if (pathname === "/place") return "行きたいリスト";
         if (pathname === "/place/new") return "新しい場所を追加";
-        if (pathname === "/place/list") return "リスト";
         if (pathname?.includes("/edit")) return "場所を編集";
         if (pathname?.includes("/detail")) return "場所の詳細";
         return "行きたい場所リスト";
