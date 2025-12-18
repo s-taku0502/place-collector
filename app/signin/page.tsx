@@ -40,6 +40,8 @@ export default function SignInPage() {
                       ? err.message
                       : "ユーザーIDの初期設定に失敗しました"
                   );
+                  setLoading(false);
+                  return;
                 }
               }
               router.push("/");

@@ -63,6 +63,11 @@ export const updateUserProfile = mutation({
             throw new Error("ユーザーIDは一度だけ設定できます（変更不可）");
         }
 
+        // 空文字や空白のみのユーザーIDを禁止
+        if (args.userIdentifier !== undefined && args.userIdentifier.trim().length === 0) {
+            throw new Error("ユーザーIDは空にできません");
+        }
+
         if (args.userIdentifier) {
             const duplicate = await ctx.db
                 .query("userProfiles")

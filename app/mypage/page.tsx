@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useState, useEffect } from "react";
 import { PREFECTURES } from "@/lib/constants";
+import Link from "next/link";
 
 export default function MyPage() {
     const user = useQuery(api.users.getCurrentUser);
@@ -15,6 +16,7 @@ export default function MyPage() {
     const [prefecture, setPrefecture] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState("");
+    const [isError, setIsError] = useState(false);
 
     // ユーザー情報が読み込まれたらフォームに反映
     useEffect(() => {
@@ -28,6 +30,7 @@ export default function MyPage() {
     const handleSave = async () => {
         setIsSaving(true);
         setMessage("");
+        setIsError(false);
 
         try {
             await updateUserProfile({
@@ -36,13 +39,15 @@ export default function MyPage() {
                 prefecture: prefecture || undefined,
             });
             setMessage("プロフィールを更新しました");
+            setIsError(false);
             setIsEditing(false);
         } catch (error) {
-            setMessage(
+            const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : "プロフィールの更新に失敗しました"
-            );
+                    : "プロフィールの更新に失敗しました";
+            setMessage(errorMessage);
+            setIsError(true);
         } finally {
             setIsSaving(false);
         }
@@ -72,12 +77,12 @@ export default function MyPage() {
                     <p className="text-gray-600 mb-4">
                         マイページを表示するにはログインが必要です
                     </p>
-                    <a
+                    <Link
                         href="/signin"
                         className="text-blue-600 hover:text-blue-800 underline"
                     >
                         ログインページへ
-                    </a>
+                    </Link>
                 </div>
             </div>
         );
@@ -101,10 +106,7 @@ export default function MyPage() {
 
                     {message && (
                         <div
-                            className={`mb-4 p-3 rounded ${message.includes("失敗") || message.includes("エラー")
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-green-100 text-green-700"
-                                }`}
+                            className={`mb-4 p-3 rounded ${isError ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
                         >
                             {message}
                         </div>

@@ -13,7 +13,7 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
-    .index("by_userIdentifier", ["userIdentifier"]),  // ユニークなユーザーID検索用
+    .index("by_userIdentifier", ["userIdentifier"]),  // ユーザーID検索用（このConvexバージョンではDBユニーク制約は未対応）
 
   places: defineTable({
     userId: v.string(),
