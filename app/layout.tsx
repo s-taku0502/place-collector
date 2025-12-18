@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "行きたい場所リスト！",
   description: "行きたい場所を管理するアプリケーションです。みんなで「行きたい」を集めよう！",
   icons: {
-    icon: "/convex.svg",
+    icon: "/favicon.ico",
   },
 };
 
