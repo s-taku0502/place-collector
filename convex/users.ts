@@ -47,7 +47,22 @@ export const updateUserProfile = mutation({
             throw new Error("認証が必要です");
         }
 
+        // 既存のプロフィールを検索
         // userIdentifierが指定されている場合、重複チェック
+        const existingProfile = await ctx.db
+            .query("userProfiles")
+            .withIndex("by_userId", (q) => q.eq("userId", userId))
+            .first();
+
+        // すでに設定済みのユーザーIDがある場合は変更不可
+        if (
+            existingProfile?.userIdentifier &&
+            args.userIdentifier &&
+            args.userIdentifier !== existingProfile.userIdentifier
+        ) {
+            throw new Error("ユーザーIDは一度だけ設定できます（変更不可）");
+        }
+
         if (args.userIdentifier) {
             const duplicate = await ctx.db
                 .query("userProfiles")
@@ -61,12 +76,6 @@ export const updateUserProfile = mutation({
                 throw new Error("このユーザーIDは既に使用されています");
             }
         }
-
-        // 既存のプロフィールを検索
-        const existingProfile = await ctx.db
-            .query("userProfiles")
-            .withIndex("by_userId", (q) => q.eq("userId", userId))
-            .first();
 
         if (existingProfile) {
             // 既存のプロフィールを更新
@@ -93,7 +102,7 @@ export const updateEmail = mutation({
         newEmail: v.string(),
         password: v.string(),
     },
-    handler: async (ctx, _args) => {
+    handler: async (ctx) => {
         const userId = await auth.getUserId(ctx);
         if (!userId) {
             throw new Error("認証が必要です");
@@ -116,7 +125,7 @@ export const updatePassword = mutation({
         currentPassword: v.string(),
         newPassword: v.string(),
     },
-    handler: async (ctx, _args) => {
+    handler: async (ctx) => {
         const userId = await auth.getUserId(ctx);
         if (!userId) {
             throw new Error("認証が必要です");
