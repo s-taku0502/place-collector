@@ -3,6 +3,37 @@ import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
 import { validateUserIdentifier } from "../lib/ng_list";
 
+// ユーザーIDの重複を事前にチェック
+export const assertUserIdentifierAvailable = mutation({
+    args: {
+        userIdentifier: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const trimmed = args.userIdentifier.trim();
+        if (trimmed.length === 0) {
+            throw new Error("ユーザーIDは空にできません");
+        }
+
+        const validation = validateUserIdentifier(trimmed);
+        if (!validation.valid) {
+            throw new Error(validation.reason || "このユーザーIDは設定できません");
+        }
+
+        const duplicate = await ctx.db
+            .query("userProfiles")
+            .withIndex("by_userIdentifier", (q) =>
+                q.eq("userIdentifier", trimmed)
+            )
+            .first();
+
+        if (duplicate) {
+            throw new Error("このユーザーIDは既に使用されています");
+        }
+
+        return { ok: true };
+    },
+});
+
 // 現在のユーザー情報を取得
 export const getCurrentUser = query({
     args: {},

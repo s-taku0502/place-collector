@@ -11,6 +11,7 @@ import { validateUserIdentifier } from "@/lib/ng_list";
 export default function SignInPage() {
   const { signIn } = useAuthActions();
   const router = useRouter();
+  const assertUserIdentifierAvailable = useMutation(api.users.assertUserIdentifierAvailable);
   const updateUserProfile = useMutation(api.users.updateUserProfile);
 
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
@@ -21,7 +22,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center px-6 bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 transition-colors">
       <form
         className="w-full max-w-sm flex flex-col gap-6 bg-white/85 dark:bg-slate-800/80 backdrop-blur rounded-xl p-6 shadow-lg dark:shadow-slate-900/40 transition-colors"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           setLoading(true);
           setError(null);
@@ -29,28 +30,45 @@ export default function SignInPage() {
           const formData = new FormData(e.currentTarget);
           formData.set("flow", flow);
           const desiredUserIdentifier = (formData.get("userIdentifier") || "") as string;
+          const normalizedUserIdentifier = desiredUserIdentifier.trim();
 
-          void signIn("password", formData)
-            .then(async () => {
-              if (flow === "signUp" && desiredUserIdentifier) {
-                try {
-                  await updateUserProfile({ userIdentifier: desiredUserIdentifier });
-                } catch (err: unknown) {
-                  setError(
-                    err instanceof Error
-                      ? err.message
-                      : "ユーザーIDの初期設定に失敗しました"
-                  );
-                  setLoading(false);
-                  return;
-                }
-              }
-              router.push("/");
-            })
-            .catch((err) => {
-              setError(err.message);
+          if (flow === "signUp") {
+            try {
+              await assertUserIdentifierAvailable({ userIdentifier: normalizedUserIdentifier });
+            } catch (err: unknown) {
+              setError(
+                err instanceof Error
+                  ? err.message
+                  : "ユーザーIDの確認中にエラーが発生しました"
+              );
               setLoading(false);
-            });
+              return;
+            }
+          }
+
+          try {
+            await signIn("password", formData);
+            if (flow === "signUp" && normalizedUserIdentifier) {
+              try {
+                await updateUserProfile({ userIdentifier: normalizedUserIdentifier });
+              } catch (err: unknown) {
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : "ユーザーIDの初期設定に失敗しました"
+                );
+                setLoading(false);
+                return;
+              }
+            }
+            // router.push("/");
+          } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "ログインに失敗しました");
+            setLoading(false);
+            return;
+          }
+
+          setLoading(false);
         }}
       >
         {/* アプリアイコン */}
