@@ -4,17 +4,16 @@ import {
   nextjsMiddlewareRedirect,
 } from "@convex-dev/auth/nextjs/server";
 
-const isSignInPage = createRouteMatcher(["/signin"]);
-const isProtectedRoute = createRouteMatcher(["/", "/server"]);
+const isPublicPage = createRouteMatcher(["/signin"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  if (isSignInPage(request) && (await convexAuth.isAuthenticated())) {
+  // ログイン済みでサインインページにアクセスした場合、/place にリダイレクト
+  if (isPublicPage(request) && (await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/place");
   }
-  if (request.nextUrl.pathname === "/" && (await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/place");
-  }
-  if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
+  
+  // 未ログインで公開ページ以外にアクセスした場合、/signin にリダイレクト
+  if (!isPublicPage(request) && !(await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/signin");
   }
 });
