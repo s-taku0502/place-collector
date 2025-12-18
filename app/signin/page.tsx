@@ -103,7 +103,11 @@ export default function SignInPage() {
         <div className="flex justify-center gap-2">
           <button
             type="button"
-            onClick={() => setFlow("signIn")}
+            onClick={() => {
+              setFlow("signIn");
+              setError(null);
+              setLoading(false);
+            }}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${flow === "signIn"
               ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
               : "bg-white text-slate-700 border-slate-300 hover:border-slate-400 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600"
@@ -113,7 +117,11 @@ export default function SignInPage() {
           </button>
           <button
             type="button"
-            onClick={() => setFlow("signUp")}
+            onClick={() => {
+              setFlow("signUp");
+              setError(null);
+              setLoading(false);
+            }}
             className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border ${flow === "signUp"
               ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
               : "bg-white text-slate-700 border-slate-300 hover:border-slate-400 dark:bg-slate-700 dark:text-slate-100 dark:border-slate-600"
