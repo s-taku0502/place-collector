@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
+import Image from "next/image";
+
 export default function Header() {
     const { signOut } = useAuthActions();
     const router = useRouter();
@@ -30,8 +32,17 @@ export default function Header() {
     return (
         <header className="bg-white border-b border-gray-200 shadow-sm">
             <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
+                <a className="flex justify-center mb-2">
+                    <Image
+                        src="/place-collector-icon.png"
+                        alt="アプリアイコン"
+                        width={40}
+                        height={40}
+                        priority
+                    />
+                </a>
                 <Link href="/" className="hover:opacity-80 transition-opacity">
-                    <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
+                    <h1 className="text-xl font-bold text-gray-900">{getPageTitle()}</h1>
                 </Link>
                 <div className="flex items-center gap-3">
                     <Link
