@@ -30,19 +30,22 @@ export default function Header() {
     };
 
     return (
-        <header className="bg-white border-b border-gray-200 shadow-sm">
-            <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
-                <a className="flex justify-center mb-2">
-                    <Image
-                        src="/place-collector-icon.png"
-                        alt="アプリアイコン"
-                        width={40}
-                        height={40}
-                        priority
-                    />
-                </a>
-                <Link href="/" className="hover:opacity-80 transition-opacity">
-                    <h1 className="text-xl font-bold text-gray-900">{getPageTitle()}</h1>
+        <header className="bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm">
+            <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+                <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl">
+                        <Image
+                            src="/place-collector-icon.png"
+                            alt="Place Collector"
+                            width={28}
+                            height={28}
+                            priority
+                        />
+                    </span>
+                    <div className="leading-tight">
+                        <p className="text-base font-semibold text-gray-900">{getPageTitle()}</p>
+                        <p className="text-xs text-gray-500">行きたい場所をコレクトしよう</p>
+                    </div>
                 </Link>
                 <div className="flex items-center gap-3">
                     <Link
