@@ -38,7 +38,6 @@ export default function EditPage() {
     return (
         <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
             <div className="mx-auto max-w-2xl px-4">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8">編集</h1>
                 <PlaceForm
                     initialValues={{
                         title: place.title ?? "",
