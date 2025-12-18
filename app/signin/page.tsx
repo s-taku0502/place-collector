@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
+import { validateUserIdentifier } from "@/lib/ng_list";
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
@@ -107,6 +108,14 @@ export default function SignInPage() {
               name="userIdentifier"
               placeholder="@"
               className="border rounded px-3 py-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+              onChange={(e) => {
+                const validation = validateUserIdentifier(e.target.value);
+                if (!validation.valid) {
+                  e.target.setCustomValidity(validation.reason || "");
+                } else {
+                  e.target.setCustomValidity("");
+                }
+              }}
               required
             />
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { auth } from "./auth";
+import { validateUserIdentifier } from "../lib/ng_list";
 
 // 現在のユーザー情報を取得
 export const getCurrentUser = query({
@@ -66,6 +67,14 @@ export const updateUserProfile = mutation({
         // 空文字や空白のみのユーザーIDを禁止
         if (args.userIdentifier !== undefined && args.userIdentifier.trim().length === 0) {
             throw new Error("ユーザーIDは空にできません");
+        }
+
+        // 禁止ユーザーID一覧をチェック
+        if (args.userIdentifier) {
+            const validation = validateUserIdentifier(args.userIdentifier);
+            if (!validation.valid) {
+                throw new Error(validation.reason || "このユーザーIDは設定できません");
+            }
         }
 
         if (args.userIdentifier) {
