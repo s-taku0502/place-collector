@@ -9,7 +9,6 @@ export default function Home() {
   const places = useQuery(api.places.list, {});
   const toggleVisited = useMutation(api.places.toggleStatus); // 行った・行ってないを切り替える
 
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
       <div className="mx-auto max-w-6xl px-4">

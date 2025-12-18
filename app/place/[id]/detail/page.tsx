@@ -59,7 +59,6 @@ export default function PlaceDetailPage() {
                         {place.station && <p className="text-sm text-gray-500">最寄り駅: {place.station}</p>}
                         <p className="mt-1 text-sm text-gray-600">ジャンル: {place.genre ?? "未設定"}</p>
                         <p className="mt-1 text-sm text-gray-600">気分: {place.mood ?? "未設定"}</p>
-                        <p className="mt-1 text-sm text-gray-600">行動: {place.status ?? "未設定"}</p>
                         <p className="mt-1 text-sm text-gray-600">
                             季節: {place.seasons?.length ? place.seasons.join(", ") : "未設定"}
                         </p>

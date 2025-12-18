@@ -5,18 +5,15 @@ import { api } from "@/convex/_generated/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const WANT_STATUS = "まだ行ってない";
-
 export default function WantListPage() {
-    const places = useQuery(api.places.listByStatus, { status: WANT_STATUS });
+    const places = useQuery(api.places.list, {});
     const router = useRouter();
 
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
             <div className="mx-auto max-w-6xl px-4">
-                <div className="mb-6 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-gray-900">行きたいリスト</h1>
+                <div className="mb-6 flex items-center justify-end">
                     <Link
                         href="/place/new"
                         className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:shadow-lg"
