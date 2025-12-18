@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
@@ -8,6 +10,7 @@ import Image from "next/image";
 export default function SignInPage() {
   const { signIn } = useAuthActions();
   const router = useRouter();
+  const updateUserProfile = useMutation(api.users.updateUserProfile);
 
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
   const [loading, setLoading] = useState(false);
@@ -24,9 +27,25 @@ export default function SignInPage() {
 
           const formData = new FormData(e.currentTarget);
           formData.set("flow", flow);
+          const desiredUserIdentifier = (formData.get("userIdentifier") || "") as string;
 
           void signIn("password", formData)
-            .then(() => router.push("/"))
+            .then(async () => {
+              if (flow === "signUp" && desiredUserIdentifier) {
+                try {
+                  await updateUserProfile({ userIdentifier: desiredUserIdentifier });
+                } catch (err: unknown) {
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : "ユーザーIDの初期設定に失敗しました"
+                  );
+                  setLoading(false);
+                  return;
+                }
+              }
+              router.push("/");
+            })
             .catch((err) => {
               setError(err.message);
               setLoading(false);
@@ -80,16 +99,19 @@ export default function SignInPage() {
           </p>
         </div>
 
-        {/* ユーザーID（新規登録のみ） */}
+        {/* ユーザーID（新規登録のみ／一度のみ設定可能） */}
         {flow === "signUp" && (
           <div className="flex flex-col gap-1">
             <label className="text-sm">ユーザーID</label>
             <input
-              name="username"
+              name="userIdentifier"
               placeholder="@"
               className="border rounded px-3 py-2 bg-white dark:bg-slate-700 dark:border-slate-600"
               required
             />
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              一度設定すると変更できません。英数字とアンダースコアのみ。
+            </p>
           </div>
         )}
 

@@ -4,6 +4,17 @@ import { v } from "convex/values";
 
 export default defineSchema({
   ...authTables,
+  userProfiles: defineTable({
+    userId: v.string(), // 認証システムのユーザーID
+    userIdentifier: v.optional(v.string()), // ユーザーID（重複不可、表示用）
+    username: v.optional(v.string()), // ユーザー名（重複可、表示用）
+    prefecture: v.optional(v.string()), // 居住地（都道府県）
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userIdentifier", ["userIdentifier"]),  // ユーザーID検索用（このConvexバージョンではDBユニーク制約は未対応）
+
   places: defineTable({
     userId: v.string(),
     // 基本情報
