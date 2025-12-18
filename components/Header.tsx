@@ -1,16 +1,18 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function Header() {
     const { signOut } = useAuthActions();
     const router = useRouter();
-    const pathname = usePathname();
+    const currentUser = useQuery(api.users.getCurrentUser, {});
 
-    // サインインページではヘッダーを表示しない
-    if (pathname === "/signin") {
+    // 未ログイン時はヘッダーを非表示
+    if (!currentUser) {
         return null;
     }
 
@@ -21,11 +23,7 @@ export default function Header() {
 
     // ページに応じたタイトルを取得
     const getPageTitle = () => {
-        if (pathname === "/") return "行きたい場所リスト";
-        if (pathname === "/place") return "行きたいリスト";
-        if (pathname === "/place/new") return "新しい場所を追加";
-        if (pathname?.includes("/edit")) return "場所を編集";
-        if (pathname?.includes("/detail")) return "場所の詳細";
+        // シンプル化：ページ共通タイトル
         return "行きたい場所リスト";
     };
 
