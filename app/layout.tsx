@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "行きたい場所リスト！",
+  title: "spotstock / 行きたい場所リスト！",
   description: "行きたい場所を管理するアプリケーションです。みんなで「行きたい」を集めよう！",
   icons: {
     icon: "/favicon.ico",
