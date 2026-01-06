@@ -216,3 +216,18 @@ export const addAfterMemo = mutation({
     });
   },
 });
+
+export const remove = mutation({
+  args: { id: v.id("places") },
+  handler: async (ctx, { id }) => {
+    const place = await ctx.db.get(id);
+    if (!place) throw new Error("Not found");
+
+    const userId = (await ctx.auth.getUserIdentity())?.subject;
+    if (!userId || place.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.delete(id);
+  },
+});
