@@ -13,7 +13,7 @@ export default async function ServerPage() {
       <div className="flex items-center justify-center gap-4">
         <div className="flex items-center gap-4">
           <Image
-            src="/convex.svg"
+            src="/favicon.ico"
             alt="Convex Logo"
             width={48}
             height={48}
