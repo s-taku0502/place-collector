@@ -130,14 +130,22 @@ export default function MyPage() {
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-2xl font-bold text-gray-800">マイページ</h1>
-                        {!isEditing && (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                        <div className="flex gap-2">
+                            <Link
+                                href="/place"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition"
                             >
-                                編集
-                            </button>
-                        )}
+                                ホームに戻る
+                            </Link>
+                            {!isEditing && (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                                >
+                                    編集
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {message && (
