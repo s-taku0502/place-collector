@@ -186,3 +186,36 @@ export const updatePassword = mutation({
         );
     },
 });
+
+// アカウント削除
+export const deleteAccount = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const userId = await auth.getUserId(ctx);
+        if (!userId) {
+            throw new Error("認証が必要です");
+        }
+
+        // ユーザープロフィールを削除
+        const userProfile = await ctx.db
+            .query("userProfiles")
+            .withIndex("by_userId", (q) => q.eq("userId", userId))
+            .first();
+
+        if (userProfile) {
+            await ctx.db.delete(userProfile._id);
+        }
+
+        // ユーザーが登録した全ての場所を削除
+        const userPlaces = await ctx.db
+            .query("places")
+            .filter((q) => q.eq(q.field("userId"), userId))
+            .collect();
+
+        for (const place of userPlaces) {
+            await ctx.db.delete(place._id);
+        }
+
+        return { success: true };
+    },
+});

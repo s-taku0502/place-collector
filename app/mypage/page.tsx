@@ -5,10 +5,13 @@ import { api } from "@/convex/_generated/api";
 import { useState, useEffect } from "react";
 import { PREFECTURES } from "@/lib/constants";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function MyPage() {
+    const router = useRouter();
     const user = useQuery(api.users.getCurrentUser);
     const updateUserProfile = useMutation(api.users.updateUserProfile);
+    const deleteAccount = useMutation(api.users.deleteAccount);
 
     const [isEditing, setIsEditing] = useState(false);
     const [userIdentifier, setUserIdentifier] = useState("");
@@ -60,6 +63,39 @@ export default function MyPage() {
         setPrefecture(user?.prefecture || "");
         setIsEditing(false);
         setMessage("");
+    };
+
+    const handleDeleteAccount = async () => {
+        if (
+            !window.confirm(
+                "本当にアカウントを削除しますか？\n登録した全ての場所のデータも削除されます。\nこの操作は取り消せません。"
+            )
+        ) {
+            return;
+        }
+
+        setIsSaving(true);
+        setMessage("");
+        setIsError(false);
+
+        try {
+            await deleteAccount();
+            setMessage("アカウントを削除しました");
+            setIsError(false);
+            // 2秒後にサインインページにリダイレクト
+            setTimeout(() => {
+                router.push("/signin");
+            }, 2000);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "アカウント削除に失敗しました";
+            setMessage(errorMessage);
+            setIsError(true);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     if (user === undefined) {
@@ -246,6 +282,21 @@ export default function MyPage() {
                             </button>
                         </div>
                     )}
+
+                    {/* アカウント削除セクション */}
+                    <div className="mt-8 border-t pt-6">
+                        <h2 className="text-sm font-medium text-gray-800 mb-4">危険なアクション</h2>
+                        <button
+                            onClick={handleDeleteAccount}
+                            disabled={isSaving}
+                            className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition disabled:opacity-50"
+                        >
+                            {isSaving ? "削除中..." : "アカウント削除"}
+                        </button>
+                        <p className="mt-2 text-xs text-gray-600">
+                            アカウントを削除すると、登録した全ての場所のデータも削除されます。この操作は取り消せません。
+                        </p>
+                    </div>
                 </div>
 
                 {/* 内部IDの表示は避ける（共有用はユーザーID= userIdentifier を使用予定） */}
