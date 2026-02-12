@@ -62,6 +62,9 @@ export const getCurrentUser = query({
             username: userProfile?.username,
             prefecture: userProfile?.prefecture,
             profileId: userProfile?._id,
+            isAdmin: userProfile?.isAdmin ?? false,
+            isSuperAdmin: userProfile?.isSuperAdmin ?? false,
+            mustResetPassword: userProfile?.mustResetPassword ?? false,
         };
     },
 });
@@ -113,6 +116,43 @@ export const requestPasswordReset = mutation({
         });
 
         return { exists: true, requested: true };
+    },
+});
+
+// パスワード再設定の申請一覧（管理者用）
+export const listPasswordResetRequests = query({
+    args: {},
+    handler: async (ctx) => {
+        return ctx.db
+            .query("resetTable")
+            .withIndex("by_createdAt")
+            .order("desc")
+            .collect();
+    },
+});
+
+// 再設定メール送信済みとしてトークンを発行（管理者用）
+export const issuePasswordResetToken = mutation({
+    args: {
+        resetId: v.id("resetTable"),
+    },
+    handler: async (ctx, args) => {
+        const reset = await ctx.db.get(args.resetId);
+        if (!reset) {
+            throw new Error("申請データが見つかりません。");
+        }
+
+        const token = globalThis.crypto?.randomUUID
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        await ctx.db.patch(args.resetId, {
+            status: "sent",
+            sentAt: Date.now(),
+            resetToken: token,
+        });
+
+        return { token };
     },
 });
 

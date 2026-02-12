@@ -9,8 +9,11 @@ export default defineSchema({
     userIdentifier: v.optional(v.string()), // ユーザーID（重複不可、表示用）
     username: v.optional(v.string()), // ユーザー名（重複可、表示用）
     prefecture: v.optional(v.string()), // 居住地（都道府県）
+    isAdmin: v.optional(v.boolean()), // 管理者フラグ
+    isSuperAdmin: v.optional(v.boolean()), // 開発者・スーパー管理者フラグ
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
+    mustResetPassword: v.optional(v.boolean()),
   })
     .index("by_userId", ["userId"])
     .index("by_userIdentifier", ["userIdentifier"]),  // ユーザーID検索用（このConvexバージョンではDBユニーク制約は未対応）
@@ -20,6 +23,7 @@ export default defineSchema({
     createdAt: v.number(),
     status: v.optional(v.string()),
     sentAt: v.optional(v.number()),
+    resetToken: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_createdAt", ["createdAt"]),

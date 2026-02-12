@@ -13,6 +13,13 @@ export default function MyPage() {
     const updateUserProfile = useMutation(api.users.updateUserProfile);
     const deleteAccount = useMutation(api.users.deleteAccount);
 
+    // mustResetPasswordがtrueならリダイレクト
+    useEffect(() => {
+        if (user && user.mustResetPassword) {
+            router.replace("/signin/reset");
+        }
+    }, [user, router]);
+
     const [isEditing, setIsEditing] = useState(false);
     const [userIdentifier, setUserIdentifier] = useState("");
     const [username, setUsername] = useState("");
