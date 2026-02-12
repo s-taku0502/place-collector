@@ -66,6 +66,26 @@ export const getCurrentUser = query({
     },
 });
 
+// メールアドレスの存在確認（パスワード再設定用）
+export const checkEmailExists = query({
+    args: {
+        email: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const trimmed = args.email.trim();
+        if (trimmed.length === 0) {
+            return { exists: false };
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .filter((q) => q.eq(q.field("email"), trimmed))
+            .first();
+
+        return { exists: Boolean(user) };
+    },
+});
+
 // ユーザープロフィールを更新
 export const updateUserProfile = mutation({
     args: {
@@ -111,11 +131,11 @@ export const updateUserProfile = mutation({
         if (args.userIdentifier) {
             const duplicate = await ctx.db
                 .query("userProfiles")
-                .withIndex("by_userIdentifier", (q) => 
+                .withIndex("by_userIdentifier", (q) =>
                     q.eq("userIdentifier", args.userIdentifier)
                 )
                 .first();
-            
+
             // 他のユーザーが既に使用しているかチェック
             if (duplicate && duplicate.userId !== userId) {
                 throw new Error("このユーザーIDは既に使用されています");

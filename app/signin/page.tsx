@@ -273,6 +273,7 @@ export default function SignInPage() {
           <button
             type="button"
             className="bg-slate-200 py-2 rounded dark:bg-slate-700 dark:text-white transition-colors"
+            onClick={() => router.push("/signin/reset")}
           >
             パスワード再設定
           </button>

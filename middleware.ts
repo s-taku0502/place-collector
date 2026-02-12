@@ -4,7 +4,7 @@ import {
   nextjsMiddlewareRedirect,
 } from "@convex-dev/auth/nextjs/server";
 
-const isPublicPage = createRouteMatcher(["/signin"]);
+const isPublicPage = createRouteMatcher(["/signin", "/signin/reset"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   // 未ログインで公開ページ以外にアクセスした場合、/signin にリダイレクト
