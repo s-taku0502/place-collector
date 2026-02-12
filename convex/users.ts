@@ -86,6 +86,36 @@ export const checkEmailExists = query({
     },
 });
 
+// パスワード再設定の申請を記録
+export const requestPasswordReset = mutation({
+    args: {
+        email: v.string(),
+    },
+    handler: async (ctx, args) => {
+        const trimmed = args.email.trim();
+        if (trimmed.length === 0) {
+            throw new Error("メールアドレスを入力してください。");
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .filter((q) => q.eq(q.field("email"), trimmed))
+            .first();
+
+        if (!user) {
+            return { exists: false, requested: false };
+        }
+
+        await ctx.db.insert("resetTable", {
+            email: trimmed,
+            createdAt: Date.now(),
+            status: "pending",
+        });
+
+        return { exists: true, requested: true };
+    },
+});
+
 // ユーザープロフィールを更新
 export const updateUserProfile = mutation({
     args: {

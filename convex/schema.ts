@@ -15,6 +15,15 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userIdentifier", ["userIdentifier"]),  // ユーザーID検索用（このConvexバージョンではDBユニーク制約は未対応）
 
+  resetTable: defineTable({
+    email: v.string(),
+    createdAt: v.number(),
+    status: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_email", ["email"])
+    .index("by_createdAt", ["createdAt"]),
+
   places: defineTable({
     userId: v.string(),
     // 基本情報
