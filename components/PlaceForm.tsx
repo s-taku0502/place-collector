@@ -86,6 +86,8 @@ export default function PlaceForm({
 }: PlaceFormProps) {
 
     const [title, setTitle] = useState(initialValues?.title ?? "");
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
     const [address, setAddress] = useState(initialValues?.address ?? "");
     const [station, setStation] = useState(initialValues?.station ?? "");
     const [genre, setGenre] = useState(initialValues?.genre ?? GENRES[DEFAULT_GENRE_INDEX]);
@@ -102,6 +104,41 @@ export default function PlaceForm({
         setSelectedSeasons(prev =>
             prev.includes(season) ? prev.filter(s => s !== season) : [...prev, season]
         );
+    };
+
+    // Google Maps Places APIで名称検索し、情報取得
+    const handleSearchPlace = async () => {
+        setIsSearching(true);
+        setSearchError(null);
+        try {
+            // TODO: APIキーは.envから取得すること
+            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+            if (!apiKey) {
+                setSearchError("APIキーが設定されていません");
+                setIsSearching(false);
+                return;
+            }
+            // Places API Text Search
+            const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(title)}&key=${apiKey}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (!data.results || data.results.length === 0) {
+                setSearchError("該当する場所が見つかりませんでした");
+                setIsSearching(false);
+                return;
+            }
+            const place = data.results[0];
+            // 住所・ジャンル・都道府県・最寄り駅などを自動反映
+            setAddress(place.formatted_address || "");
+            // ジャンルや都道府県は後続で詳細取得APIを使うことも検討
+            // 最寄り駅はAPIから直接取得できないため、今は空欄
+            // TODO: 必要に応じてジャンルや都道府県の推定ロジック追加
+        } catch (err) {
+            setSearchError("検索中にエラーが発生しました");
+            console.error(err);
+        } finally {
+            setIsSearching(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -149,17 +186,31 @@ export default function PlaceForm({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         名称 <span className="text-red-500">*</span>
                     </label>
-                    <input
-                        type="text"
-                        placeholder="例：〇〇カフェ"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.title
-                                ? "border-red-500 focus:ring-red-500"
-                                : "border-gray-300 focus:ring-blue-500"
-                            }`}
-                    />
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            placeholder="例：〇〇カフェ"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className={`flex-1 rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.title
+                                    ? "border-red-500 focus:ring-red-500"
+                                    : "border-gray-300 focus:ring-blue-500"
+                                }`}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleSearchPlace}
+                            disabled={isSearching || !title.trim()}
+                            className={`rounded-lg px-4 py-2 font-semibold transition-all ${isSearching || !title.trim()
+                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                }`}
+                        >
+                            {isSearching ? "検索中..." : "名称で検索"}
+                        </button>
+                    </div>
                     {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+                    {searchError && <p className="mt-1 text-sm text-red-600">{searchError}</p>}
                 </div>
 
                 <div className="mt-4">
