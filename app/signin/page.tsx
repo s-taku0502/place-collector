@@ -192,18 +192,25 @@ export default function SignInPage() {
               name="userIdentifier"
               placeholder="@"
               className="border rounded px-3 py-2 bg-white dark:bg-slate-700 dark:border-slate-600"
+              pattern="^[a-z0-9_]+$"
               onChange={(e) => {
-                const validation = validateUserIdentifier(e.target.value);
-                if (!validation.valid) {
-                  e.target.setCustomValidity(validation.reason || "");
+                const value = e.target.value;
+                // 英語小文字・数字・アンダースコア以外はバリデーション
+                if (!/^[a-z0-9_]+$/.test(value)) {
+                  e.target.setCustomValidity("英語小文字・数字・アンダースコアのみ使用できます。");
                 } else {
                   e.target.setCustomValidity("");
+                }
+                // 既存の追加バリデーションも実行
+                const validation = validateUserIdentifier(value);
+                if (!validation.valid) {
+                  e.target.setCustomValidity(validation.reason || "");
                 }
               }}
               required
             />
             <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              一度設定すると変更できません。英数字とアンダースコアのみ。
+              一度設定すると変更できません。英語小文字・数字・アンダースコアのみ使用できます。
             </p>
           </div>
         )}
