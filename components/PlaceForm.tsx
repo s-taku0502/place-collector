@@ -1,17 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     PREFECTURES,
     GENRES,
     SEASONS,
     MOODS,
-    // STATUSES,
     DEFAULT_PREFECTURE_INDEX,
     DEFAULT_GENRE_INDEX,
     DEFAULT_MOOD_INDEX,
-    // DEFAULT_STATUS_INDEX,
 } from "../lib/constants";
+
+// Web Componentsの型定義
+declare global {
+    // eslint-disable-next-line @typescript-eslint/no-namespace
+    namespace JSX {
+        interface IntrinsicElements {
+            "gmpx-place-picker": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+                placeholder?: string;
+                class?: string;
+            };
+        }
+    }
+}
 
 export type PlaceFormValues = {
     title: string;
@@ -21,7 +32,6 @@ export type PlaceFormValues = {
     prefecture: string;
     seasons: string[];
     mood: string;
-    // status: string;
     beforeMemo?: string;
     beforeUrl?: string;
 };
@@ -42,7 +52,7 @@ export function getDefaultPlaceFormValues(): PlaceFormValues {
 
 function extractPrefectureFromAddress(addressText: string): string {
     for (const pref of PREFECTURES) {
-        if (addressText.startsWith(pref)) return pref;
+        if (addressText.includes(pref)) return pref;
     }
     return PREFECTURES[DEFAULT_PREFECTURE_INDEX];
 }
@@ -84,66 +94,44 @@ export default function PlaceForm({
     submitLabel,
     onCancel,
 }: PlaceFormProps) {
-
     const [title, setTitle] = useState(initialValues?.title ?? "");
-    const [isSearching, setIsSearching] = useState(false);
-    const [searchError, setSearchError] = useState<string | null>(null);
     const [address, setAddress] = useState(initialValues?.address ?? "");
     const [station, setStation] = useState(initialValues?.station ?? "");
     const [genre, setGenre] = useState(initialValues?.genre ?? GENRES[DEFAULT_GENRE_INDEX]);
     const [prefecture, setPrefecture] = useState(initialValues?.prefecture ?? PREFECTURES[DEFAULT_PREFECTURE_INDEX]);
     const [selectedSeasons, setSelectedSeasons] = useState<string[]>(initialValues?.seasons ?? []);
     const [mood, setMood] = useState(initialValues?.mood ?? MOODS[DEFAULT_MOOD_INDEX]);
-    // const [status, setStatus] = useState(initialValues?.status ?? STATUSES[DEFAULT_STATUS_INDEX]);
     const [beforeMemo, setBeforeMemo] = useState(initialValues?.beforeMemo ?? "");
     const [beforeUrl, setBeforeUrl] = useState(initialValues?.beforeUrl ?? "");
     const [errors, setErrors] = useState<PlaceFormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const toggleSeason = (season: string) => {
-        setSelectedSeasons(prev =>
-            prev.includes(season) ? prev.filter(s => s !== season) : [...prev, season]
-        );
-    };
+    const pickerRef = useRef<HTMLElement>(null);
 
-    // Google Maps Places APIで名称検索し、情報取得
-    const handleSearchPlace = async () => {
-        setIsSearching(true);
-        setSearchError(null);
-        try {
-            const res = await fetch(`/api/search-place?query=${encodeURIComponent(title)}`);
-            if (!res.ok) {
-                setSearchError("検索APIの呼び出しに失敗しました");
-                setIsSearching(false);
-                return;
-            }
-            const data = await res.json();
-            // Google Places APIの仕様に準拠したレスポンスチェック
-            if (data.status && data.status !== "OK") {
-                setSearchError(`Google Places APIエラー: ${data.status}`);
-                setIsSearching(false);
-                return;
-            }
-            if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
-                setSearchError("該当する場所が見つかりませんでした");
-                setIsSearching(false);
-                return;
-            }
-            const place = data.results[0];
+    useEffect(() => {
+        const picker = pickerRef.current;
+        if (!picker) return;
 
-            // name, formatted_address, types などGoogle公式仕様で取得
-            if (typeof place.name === "string" && place.name.length > 0) {
+        const handlePlaceChange = () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const place = (picker as any).value;
+            if (!place) return;
+
+            // 名称の設定
+            if (place.displayName) {
+                setTitle(place.displayName);
+            } else if (place.name) {
                 setTitle(place.name);
             }
-            setAddress(typeof place.formatted_address === "string" ? place.formatted_address : "");
 
-            // 都道府県自動推定
-            if (typeof place.formatted_address === "string") {
-                const pref = extractPrefectureFromAddress(place.formatted_address);
+            // 住所の設定
+            if (place.formattedAddress) {
+                setAddress(place.formattedAddress);
+                const pref = extractPrefectureFromAddress(place.formattedAddress);
                 setPrefecture(pref);
             }
 
-            // ジャンル自動推定（Googleのtypes配列とGENRESの簡易マッピング）
+            // ジャンル自動推定
             if (Array.isArray(place.types)) {
                 const typeGenreMap: { [key: string]: string } = {
                     restaurant: "飲食店",
@@ -179,31 +167,39 @@ export default function PlaceForm({
                 }
             }
 
-            // 季節の自動推定（特定のキーワードが含まれる場合）
-            const titleAndAddress = ((place.name || "") + (place.formatted_address || "")).toLowerCase();
+            // 季節の自動推定
+            const titleAndAddress = ((place.displayName || place.name || "") + (place.formattedAddress || "")).toLowerCase();
+            const newSeasons: string[] = [];
             if (titleAndAddress.includes("桜") || titleAndAddress.includes("花見") || titleAndAddress.includes("sakura")) {
-                if (!selectedSeasons.includes("春")) setSelectedSeasons(prev => [...prev, "春"]);
+                newSeasons.push("春");
             }
             if (titleAndAddress.includes("海") || titleAndAddress.includes("プール") || titleAndAddress.includes("夏祭り")) {
-                if (!selectedSeasons.includes("夏")) setSelectedSeasons(prev => [...prev, "夏"]);
+                newSeasons.push("夏");
             }
             if (titleAndAddress.includes("紅葉") || titleAndAddress.includes("もみじ")) {
-                if (!selectedSeasons.includes("秋")) setSelectedSeasons(prev => [...prev, "秋"]);
+                newSeasons.push("秋");
             }
             if (titleAndAddress.includes("スキー") || titleAndAddress.includes("スノボ") || titleAndAddress.includes("イルミネーション")) {
-                if (!selectedSeasons.includes("冬")) setSelectedSeasons(prev => [...prev, "冬"]);
+                newSeasons.push("冬");
             }
 
-            // デフォルトで「通年」をチェック（何もヒットしなかった場合や一般的な場所）
-            if (selectedSeasons.length === 0) {
+            if (newSeasons.length > 0) {
+                setSelectedSeasons(newSeasons);
+            } else {
                 setSelectedSeasons(["通年"]);
             }
-        } catch (err) {
-            setSearchError("検索中にエラーが発生しました");
-            console.error(err);
-        } finally {
-            setIsSearching(false);
-        }
+        };
+
+        picker.addEventListener("gmpx-placechange", handlePlaceChange);
+        return () => {
+            picker.removeEventListener("gmpx-placechange", handlePlaceChange);
+        };
+    }, []);
+
+    const toggleSeason = (season: string) => {
+        setSelectedSeasons(prev =>
+            prev.includes(season) ? prev.filter(s => s !== season) : [...prev, season]
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -217,7 +213,6 @@ export default function PlaceForm({
             prefecture,
             seasons: selectedSeasons,
             mood,
-            // status,
             beforeMemo: beforeMemo.trim() || undefined,
             beforeUrl: beforeUrl.trim() || undefined,
         };
@@ -251,31 +246,24 @@ export default function PlaceForm({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         名称 <span className="text-red-500">*</span>
                     </label>
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
+                        <gmpx-place-picker
+                            ref={pickerRef as any}
+                            placeholder="場所を検索..."
+                            class="w-full"
+                        />
                         <input
                             type="text"
-                            placeholder="例：〇〇カフェ"
+                            placeholder="名称（自動入力されます）"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className={`flex-1 rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.title
-                                    ? "border-red-500 focus:ring-red-500"
-                                    : "border-gray-300 focus:ring-blue-500"
+                            className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.title
+                                ? "border-red-500 focus:ring-red-500"
+                                : "border-gray-300 focus:ring-blue-500"
                                 }`}
                         />
-                        <button
-                            type="button"
-                            onClick={handleSearchPlace}
-                            disabled={isSearching || !title.trim()}
-                            className={`rounded-lg px-4 py-2 font-semibold transition-all ${isSearching || !title.trim()
-                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                    : "bg-blue-600 text-white hover:bg-blue-700"
-                                }`}
-                        >
-                            {isSearching ? "検索中..." : "名称で検索"}
-                        </button>
                     </div>
                     {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
-                    {searchError && <p className="mt-1 text-sm text-red-600">{searchError}</p>}
                 </div>
 
                 <div className="mt-4">
@@ -292,8 +280,8 @@ export default function PlaceForm({
                             setPrefecture(newPref);
                         }}
                         className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.address
-                                ? "border-red-500 focus:ring-red-500"
-                                : "border-gray-300 focus:ring-blue-500"
+                            ? "border-red-500 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-blue-500"
                             }`}
                     />
                     {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
@@ -383,21 +371,6 @@ export default function PlaceForm({
                         ))}
                     </select>
                 </div>
-
-                {/* <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        行動 <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        {STATUSES.map((s: string) => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                    </select>
-                </div> */}
             </div>
 
             {/* 行く前のメモ */}
@@ -435,8 +408,8 @@ export default function PlaceForm({
                     type="submit"
                     disabled={isSubmitting}
                     className={`flex-1 rounded-lg px-6 py-3 font-semibold shadow-lg transition-all ${isSubmitting
-                            ? "bg-gray-400 text-white cursor-not-allowed opacity-70"
-                            : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-xl hover:scale-105 active:scale-95"
+                        ? "bg-gray-400 text-white cursor-not-allowed opacity-70"
+                        : "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:shadow-xl hover:scale-105 active:scale-95"
                         }`}
                 >
                     {isSubmitting ? "保存中…" : submitLabel}
@@ -447,8 +420,8 @@ export default function PlaceForm({
                         onClick={onCancel}
                         disabled={isSubmitting}
                         className={`rounded-lg border-2 px-6 py-3 font-semibold transition-all ${isSubmitting
-                                ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                                : "border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95"
+                            ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-100 active:scale-95"
                             }`}
                     >
                         キャンセル

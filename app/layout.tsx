@@ -4,6 +4,7 @@ import "./globals.css";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import Header from "@/components/Header";
+import Script from "next/script";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -37,6 +38,15 @@ export default function RootLayout({
             <Header />
             {children}
           </ConvexClientProvider>
+          <Script
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&v=beta`}
+            strategy="beforeInteractive"
+          />
+          <Script
+            type="module"
+            src="https://unpkg.com/@googlemaps/extended-component-library"
+            strategy="afterInteractive"
+          />
         </body>
       </html>
     </ConvexAuthNextjsServerProvider>
