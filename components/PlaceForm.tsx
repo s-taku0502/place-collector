@@ -124,6 +124,12 @@ export default function PlaceForm({
                 return;
             }
             const place = data.results[0];
+            
+            // 名称を正式名称に更新
+            if (place.name) {
+                setTitle(place.name);
+            }
+            
             setAddress(place.formatted_address || "");
 
             // 都道府県自動推定
@@ -138,12 +144,23 @@ export default function PlaceForm({
                     restaurant: "飲食店",
                     cafe: "飲食店",
                     food: "飲食店",
+                    bakery: "飲食店",
+                    bar: "飲食店",
+                    meal_takeaway: "飲食店",
                     museum: "美術館",
+                    art_gallery: "美術館",
                     park: "公園",
                     spa: "温泉",
                     store: "ショップ",
+                    shopping_mall: "ショップ",
+                    clothing_store: "ショップ",
                     amusement_park: "レジャー",
+                    zoo: "レジャー",
+                    aquarium: "レジャー",
                     tourist_attraction: "観光地",
+                    shrine: "観光地",
+                    church: "観光地",
+                    temple: "観光地",
                 };
                 let matchedGenre = "";
                 for (const t of place.types) {
@@ -156,7 +173,26 @@ export default function PlaceForm({
                     setGenre(matchedGenre);
                 }
             }
-            // 最寄り駅はAPIから直接取得できないため、ユーザー入力のまま
+            
+            // 季節の自動推定（特定のキーワードが含まれる場合）
+            const titleAndAddress = (place.name + (place.formatted_address || "")).toLowerCase();
+            if (titleAndAddress.includes("桜") || titleAndAddress.includes("花見") || titleAndAddress.includes("sakura")) {
+                if (!selectedSeasons.includes("春")) setSelectedSeasons(prev => [...prev, "春"]);
+            }
+            if (titleAndAddress.includes("海") || titleAndAddress.includes("プール") || titleAndAddress.includes("夏祭り")) {
+                if (!selectedSeasons.includes("夏")) setSelectedSeasons(prev => [...prev, "夏"]);
+            }
+            if (titleAndAddress.includes("紅葉") || titleAndAddress.includes("もみじ")) {
+                if (!selectedSeasons.includes("秋")) setSelectedSeasons(prev => [...prev, "秋"]);
+            }
+            if (titleAndAddress.includes("スキー") || titleAndAddress.includes("スノボ") || titleAndAddress.includes("イルミネーション")) {
+                if (!selectedSeasons.includes("冬")) setSelectedSeasons(prev => [...prev, "冬"]);
+            }
+            
+            // デフォルトで「通年」をチェック（何もヒットしなかった場合や一般的な場所）
+            if (selectedSeasons.length === 0) {
+                setSelectedSeasons(["通年"]);
+            }
         } catch (err) {
             setSearchError("検索中にエラーが発生しました");
             console.error(err);
