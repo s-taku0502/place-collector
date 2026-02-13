@@ -11,18 +11,7 @@ import {
     DEFAULT_MOOD_INDEX,
 } from "../lib/constants";
 
-// Web Componentsの型定義
-declare global {
-    // eslint-disable-next-line @typescript-eslint/no-namespace
-    namespace JSX {
-        interface IntrinsicElements {
-            "gmpx-place-picker": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
-                placeholder?: string;
-                class?: string;
-            };
-        }
-    }
-}
+
 
 export type PlaceFormValues = {
     title: string;
@@ -247,6 +236,7 @@ export default function PlaceForm({
                         名称 <span className="text-red-500">*</span>
                     </label>
                     <div className="space-y-2">
+                        {/* @ts-ignore */}
                         <gmpx-place-picker
                             ref={pickerRef as any}
                             placeholder="場所を検索..."
