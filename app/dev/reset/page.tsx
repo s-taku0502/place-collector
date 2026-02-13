@@ -27,14 +27,16 @@ export default function PasswordResetDevPage() {
     const searchParams = useSearchParams();
 
     // 先にuserのロード状態でreturnし、以降のHooksの順序を保証
+    useEffect(() => {
+        if (user && !user.isSuperAdmin) {
+            router.replace("/dev/login");
+        }
+    }, [user, router]);
+
     if (!user) {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
     if (!user.isSuperAdmin) {
-        // 認可外はリダイレクト
-        useEffect(() => {
-            router.replace("/dev/login");
-        }, [router]);
         return null;
     }
 
