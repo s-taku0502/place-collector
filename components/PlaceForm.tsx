@@ -111,16 +111,12 @@ export default function PlaceForm({
         setIsSearching(true);
         setSearchError(null);
         try {
-            // TODO: APIキーは.envから取得すること
-            const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-            if (!apiKey) {
-                setSearchError("APIキーが設定されていません");
+            const res = await fetch(`/api/search-place?query=${encodeURIComponent(title)}`);
+            if (!res.ok) {
+                setSearchError("検索APIの呼び出しに失敗しました");
                 setIsSearching(false);
                 return;
             }
-            // Places API Text Search
-            const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(title)}&key=${apiKey}`;
-            const res = await fetch(url);
             const data = await res.json();
             if (!data.results || data.results.length === 0) {
                 setSearchError("該当する場所が見つかりませんでした");
@@ -128,11 +124,39 @@ export default function PlaceForm({
                 return;
             }
             const place = data.results[0];
-            // 住所・ジャンル・都道府県・最寄り駅などを自動反映
             setAddress(place.formatted_address || "");
-            // ジャンルや都道府県は後続で詳細取得APIを使うことも検討
-            // 最寄り駅はAPIから直接取得できないため、今は空欄
-            // TODO: 必要に応じてジャンルや都道府県の推定ロジック追加
+
+            // 都道府県自動推定
+            if (place.formatted_address) {
+                const pref = extractPrefectureFromAddress(place.formatted_address);
+                setPrefecture(pref);
+            }
+
+            // ジャンル自動推定（Googleのtypes配列とGENRESの簡易マッピング）
+            if (place.types && Array.isArray(place.types)) {
+                const typeGenreMap: { [key: string]: string } = {
+                    restaurant: "飲食店",
+                    cafe: "飲食店",
+                    food: "飲食店",
+                    museum: "美術館",
+                    park: "公園",
+                    spa: "温泉",
+                    store: "ショップ",
+                    amusement_park: "レジャー",
+                    tourist_attraction: "観光地",
+                };
+                let matchedGenre = "";
+                for (const t of place.types) {
+                    if (typeGenreMap[t]) {
+                        matchedGenre = typeGenreMap[t];
+                        break;
+                    }
+                }
+                if (matchedGenre && GENRES.includes(matchedGenre)) {
+                    setGenre(matchedGenre);
+                }
+            }
+            // 最寄り駅はAPIから直接取得できないため、ユーザー入力のまま
         } catch (err) {
             setSearchError("検索中にエラーが発生しました");
             console.error(err);
