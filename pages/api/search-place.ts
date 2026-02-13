@@ -10,12 +10,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Missing query parameter' });
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
         return res.status(500).json({ error: 'API key not configured' });
     }
 
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${apiKey}`;
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&language=ja&region=jp&key=${apiKey}`;
 
     try {
         const response = await fetch(url);

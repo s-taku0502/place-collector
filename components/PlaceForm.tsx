@@ -118,28 +118,33 @@ export default function PlaceForm({
                 return;
             }
             const data = await res.json();
-            if (!data.results || data.results.length === 0) {
+            // Google Places APIの仕様に準拠したレスポンスチェック
+            if (data.status && data.status !== "OK") {
+                setSearchError(`Google Places APIエラー: ${data.status}`);
+                setIsSearching(false);
+                return;
+            }
+            if (!data.results || !Array.isArray(data.results) || data.results.length === 0) {
                 setSearchError("該当する場所が見つかりませんでした");
                 setIsSearching(false);
                 return;
             }
             const place = data.results[0];
-            
-            // 名称を正式名称に更新
-            if (place.name) {
+
+            // name, formatted_address, types などGoogle公式仕様で取得
+            if (typeof place.name === "string" && place.name.length > 0) {
                 setTitle(place.name);
             }
-            
-            setAddress(place.formatted_address || "");
+            setAddress(typeof place.formatted_address === "string" ? place.formatted_address : "");
 
             // 都道府県自動推定
-            if (place.formatted_address) {
+            if (typeof place.formatted_address === "string") {
                 const pref = extractPrefectureFromAddress(place.formatted_address);
                 setPrefecture(pref);
             }
 
             // ジャンル自動推定（Googleのtypes配列とGENRESの簡易マッピング）
-            if (place.types && Array.isArray(place.types)) {
+            if (Array.isArray(place.types)) {
                 const typeGenreMap: { [key: string]: string } = {
                     restaurant: "飲食店",
                     cafe: "飲食店",
@@ -173,9 +178,9 @@ export default function PlaceForm({
                     setGenre(matchedGenre);
                 }
             }
-            
+
             // 季節の自動推定（特定のキーワードが含まれる場合）
-            const titleAndAddress = (place.name + (place.formatted_address || "")).toLowerCase();
+            const titleAndAddress = ((place.name || "") + (place.formatted_address || "")).toLowerCase();
             if (titleAndAddress.includes("桜") || titleAndAddress.includes("花見") || titleAndAddress.includes("sakura")) {
                 if (!selectedSeasons.includes("春")) setSelectedSeasons(prev => [...prev, "春"]);
             }
@@ -188,7 +193,7 @@ export default function PlaceForm({
             if (titleAndAddress.includes("スキー") || titleAndAddress.includes("スノボ") || titleAndAddress.includes("イルミネーション")) {
                 if (!selectedSeasons.includes("冬")) setSelectedSeasons(prev => [...prev, "冬"]);
             }
-            
+
             // デフォルトで「通年」をチェック（何もヒットしなかった場合や一般的な場所）
             if (selectedSeasons.length === 0) {
                 setSelectedSeasons(["通年"]);
