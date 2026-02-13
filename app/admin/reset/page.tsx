@@ -41,7 +41,7 @@ export default function PasswordResetAdminPage() {
     }
 
     const rows = useMemo(() => requests ?? [], [requests]);
-    const filter = searchParams.get("filter") ?? "all";
+        const filter = searchParams?.get("filter") ?? "all";
     const filteredRows = rows.filter((row) => {
         if (filter === "sent") return row.status === "sent";
         if (filter === "pending") return row.status !== "sent";
