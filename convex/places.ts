@@ -31,24 +31,27 @@ export const add = mutation({
     const userId = (await ctx.auth.getUserIdentity())?.subject;
     if (!userId) throw new Error("Unauthorized");
 
-    await ctx.db.insert("places", {
+    // 必須フィールドは空文字デフォルト、optionalはundefinedなら渡さない
+    const place: Record<string, any> = {
       userId,
-      title: args.title,
-      address: args.address,
-      station: args.station,
-      genre: args.genre,
-      internationalType: args.internationalType,
-      region: args.region,
-      prefecture: args.prefecture,
-      seasons: args.seasons,
-      mood: args.mood,
-      status: args.status,
-      beforeMemo: args.beforeMemo,
-      beforeUrl: args.beforeUrl,
-      afterMemos: args.afterMemos ?? [],
+      title: args.title ?? "",
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    });
+    };
+    if (args.address !== undefined) place.address = args.address;
+    if (args.station !== undefined) place.station = args.station;
+    if (args.genre !== undefined) place.genre = args.genre;
+    if (args.internationalType !== undefined) place.internationalType = args.internationalType;
+    if (args.region !== undefined) place.region = args.region;
+    if (args.prefecture !== undefined) place.prefecture = args.prefecture;
+    if (args.seasons !== undefined) place.seasons = args.seasons;
+    if (args.mood !== undefined) place.mood = args.mood;
+    if (args.status !== undefined) place.status = args.status;
+    if (args.beforeMemo !== undefined) place.beforeMemo = args.beforeMemo;
+    if (args.beforeUrl !== undefined) place.beforeUrl = args.beforeUrl;
+    if (args.afterMemos !== undefined) place.afterMemos = args.afterMemos;
+
+    await ctx.db.insert("places", place);
   },
 });
 
