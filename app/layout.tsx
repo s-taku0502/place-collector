@@ -46,6 +46,7 @@ export default function RootLayout({
             type="module"
             src="https://unpkg.com/@googlemaps/extended-component-library"
             strategy="afterInteractive"
+            crossOrigin="anonymous"
           />
         </body>
       </html>
