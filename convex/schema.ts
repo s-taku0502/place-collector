@@ -36,6 +36,8 @@ export default defineSchema({
     station: v.optional(v.string()), // 最寄り駅（任意）
     // ラベル
     genre: v.optional(v.string()), // ジャンル（旧データとの互換性のため optional）
+    internationalType: v.optional(v.string()), // 国際区分（日本/海外）
+    region: v.optional(v.string()), // 地域（都道府県/国名）
     prefecture: v.optional(v.string()), // 都道府県（旧データとの互換性のため optional）
     seasons: v.optional(v.array(v.string())), // 季節（複数選択：春、夏、秋、冬、通年）
     mood: v.optional(v.string()), // 気分（ひとり、誰かと、どちらでも）

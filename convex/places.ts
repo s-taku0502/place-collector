@@ -7,7 +7,9 @@ export const add = mutation({
     address: v.string(),
     station: v.optional(v.string()),
     genre: v.string(),
-    prefecture: v.string(),
+    internationalType: v.optional(v.string()),
+    region: v.optional(v.string()),
+    prefecture: v.optional(v.string()),
     seasons: v.array(v.string()),
     mood: v.string(),
     status: v.string(),
@@ -35,6 +37,8 @@ export const add = mutation({
       address: args.address,
       station: args.station,
       genre: args.genre,
+      internationalType: args.internationalType,
+      region: args.region,
       prefecture: args.prefecture,
       seasons: args.seasons,
       mood: args.mood,
@@ -96,7 +100,9 @@ export const update = mutation({
     address: v.string(),
     station: v.optional(v.string()),
     genre: v.string(),
-    prefecture: v.string(),
+    internationalType: v.optional(v.string()),
+    region: v.optional(v.string()),
+    prefecture: v.optional(v.string()),
     seasons: v.array(v.string()),
     mood: v.string(),
     status: v.string(),
@@ -134,6 +140,8 @@ export const updatePartial = mutation({
     address: v.optional(v.string()),
     station: v.optional(v.string()),
     genre: v.optional(v.string()),
+    internationalType: v.optional(v.string()),
+    region: v.optional(v.string()),
     prefecture: v.optional(v.string()),
     seasons: v.optional(v.array(v.string())),
     mood: v.optional(v.string()),
@@ -196,15 +204,15 @@ export const addAfterMemo = mutation({
     const seededMemos =
       existingMemos.length === 0 && place.afterMemo
         ? [
-            ...existingMemos,
-            {
-              memo: place.afterMemo,
-              url: place.afterUrl,
-              rating: place.rating,
-              wantToVisitAgain: undefined,
-              createdAt: place.updatedAt ?? place.createdAt ?? createdAt,
-            },
-          ]
+          ...existingMemos,
+          {
+            memo: place.afterMemo,
+            url: place.afterUrl,
+            rating: place.rating,
+            wantToVisitAgain: undefined,
+            createdAt: place.updatedAt ?? place.createdAt ?? createdAt,
+          },
+        ]
         : existingMemos;
 
     await ctx.db.patch(id, {

@@ -1,5 +1,8 @@
 "use client";
 
+// Gemini APIによる判別
+import { fetchGeminiLocationResult } from "../lib/googleGemini";
+
 import { useState, useEffect, useRef } from "react";
 import {
     PREFECTURES,
@@ -10,6 +13,7 @@ import {
     DEFAULT_GENRE_INDEX,
     DEFAULT_MOOD_INDEX,
 } from "../lib/constants";
+import { INTERNATIONAL_TYPES, COUNTRIES } from "../lib/countries";
 
 
 
@@ -18,7 +22,8 @@ export type PlaceFormValues = {
     address: string;
     station?: string;
     genre: string;
-    prefecture: string;
+    internationalType: string; // "日本" or "海外"
+    region: string; // 都道府県 or 国名
     seasons: string[];
     mood: string;
     beforeMemo?: string;
@@ -31,7 +36,8 @@ export function getDefaultPlaceFormValues(): PlaceFormValues {
         address: "",
         station: "",
         genre: GENRES[DEFAULT_GENRE_INDEX],
-        prefecture: PREFECTURES[DEFAULT_PREFECTURE_INDEX],
+        internationalType: INTERNATIONAL_TYPES[0], // "日本"
+        region: PREFECTURES[DEFAULT_PREFECTURE_INDEX],
         seasons: [],
         mood: MOODS[DEFAULT_MOOD_INDEX],
         beforeMemo: "",
@@ -39,17 +45,38 @@ export function getDefaultPlaceFormValues(): PlaceFormValues {
     };
 }
 
-function extractPrefectureFromAddress(addressText: string): string {
+function extractPrefectureFromAddress(addressText: string): string | undefined {
     for (const pref of PREFECTURES) {
         if (addressText.includes(pref)) return pref;
     }
-    return PREFECTURES[DEFAULT_PREFECTURE_INDEX];
+    return undefined;
+}
+
+function extractCountryFromAddress(addressText: string): string | undefined {
+    for (const country of COUNTRIES) {
+        if (addressText.includes(country)) return country;
+    }
+    return undefined;
+}
+
+function autoDetectInternationalTypeAndRegion(addressText: string): { internationalType: string, region: string } {
+    const pref = extractPrefectureFromAddress(addressText);
+    if (pref) {
+        return { internationalType: "日本", region: pref };
+    }
+    const country = extractCountryFromAddress(addressText);
+    if (country) {
+        return { internationalType: "海外", region: country };
+    }
+    // どちらも該当しない場合はデフォルト
+    return { internationalType: INTERNATIONAL_TYPES[0], region: PREFECTURES[DEFAULT_PREFECTURE_INDEX] };
 }
 
 export type PlaceFormErrors = {
     title?: string;
     address?: string;
     seasons?: string;
+    region?: string;
 };
 
 function validateForm(values: PlaceFormValues): PlaceFormErrors {
@@ -65,6 +92,10 @@ function validateForm(values: PlaceFormValues): PlaceFormErrors {
 
     if (!values.seasons.length) {
         errors.seasons = "季節を選択してください";
+    }
+
+    if (!values.region?.trim()) {
+        errors.region = values.internationalType === "日本" ? "都道府県を選択してください" : "国名を選択してください";
     }
 
     return errors;
@@ -87,7 +118,11 @@ export default function PlaceForm({
     const [address, setAddress] = useState(initialValues?.address ?? "");
     const [station, setStation] = useState(initialValues?.station ?? "");
     const [genre, setGenre] = useState(initialValues?.genre ?? GENRES[DEFAULT_GENRE_INDEX]);
-    const [prefecture, setPrefecture] = useState(initialValues?.prefecture ?? PREFECTURES[DEFAULT_PREFECTURE_INDEX]);
+    const [internationalType, setInternationalType] = useState(initialValues?.internationalType ?? INTERNATIONAL_TYPES[0]);
+    const [region, setRegion] = useState(initialValues?.region ?? PREFECTURES[DEFAULT_PREFECTURE_INDEX]);
+    const [autoDetected, setAutoDetected] = useState(false);
+    const [isGeminiLoading, setIsGeminiLoading] = useState(false);
+    const [geminiError, setGeminiError] = useState<string | null>(null);
     const [selectedSeasons, setSelectedSeasons] = useState<string[]>(initialValues?.seasons ?? []);
     const [mood, setMood] = useState(initialValues?.mood ?? MOODS[DEFAULT_MOOD_INDEX]);
     const [beforeMemo, setBeforeMemo] = useState(initialValues?.beforeMemo ?? "");
@@ -116,8 +151,10 @@ export default function PlaceForm({
             // 住所の設定
             if (place.formattedAddress) {
                 setAddress(place.formattedAddress);
-                const pref = extractPrefectureFromAddress(place.formattedAddress);
-                setPrefecture(pref);
+                const detected = autoDetectInternationalTypeAndRegion(place.formattedAddress);
+                setInternationalType(detected.internationalType);
+                setRegion(detected.region);
+                setAutoDetected(true);
             }
 
             // ジャンル自動推定
@@ -183,7 +220,7 @@ export default function PlaceForm({
         return () => {
             picker.removeEventListener("gmpx-placechange", handlePlaceChange);
         };
-    }, []);
+    }, [internationalType]);
 
     const toggleSeason = (season: string) => {
         setSelectedSeasons(prev =>
@@ -199,7 +236,8 @@ export default function PlaceForm({
             address: address.trim(),
             station: station.trim() || undefined,
             genre,
-            prefecture,
+            internationalType,
+            region,
             seasons: selectedSeasons,
             mood,
             beforeMemo: beforeMemo.trim() || undefined,
@@ -260,21 +298,75 @@ export default function PlaceForm({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         住所 <span className="text-red-500">*</span>
                     </label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            placeholder="例：東京都渋谷区〇〇、New York, USA など"
+                            value={address}
+                            onChange={(e) => {
+                                setAddress(e.target.value);
+                                const detected = autoDetectInternationalTypeAndRegion(e.target.value);
+                                setInternationalType(detected.internationalType);
+                                setRegion(detected.region);
+                                setAutoDetected(true);
+                            }}
+                            className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.address
+                                ? "border-red-500 focus:ring-red-500"
+                                : "border-gray-300 focus:ring-blue-500"
+                                }`}
+                        />
+                        <button
+                            type="button"
+                            className="rounded bg-blue-500 text-white px-3 py-2 text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
+                            disabled={isGeminiLoading || !address.trim()}
+                            onClick={async () => {
+                                setIsGeminiLoading(true);
+                                setGeminiError(null);
+                                try {
+                                    // APIキーは安全な方法で取得してください
+                                    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_AEY || "";
+                                    if (!apiKey) throw new Error("Gemini APIキーが設定されていません");
+                                    const result = await fetchGeminiLocationResult(address, apiKey);
+                                    setInternationalType(result.internationalType);
+                                    setRegion(result.region);
+                                    setAutoDetected(true);
+                                } catch (err: any) {
+                                    setGeminiError(err.message || "Gemini APIエラー");
+                                } finally {
+                                    setIsGeminiLoading(false);
+                                }
+                            }}
+                        >
+                            {isGeminiLoading ? "判別中..." : "AI判別"}
+                        </button>
+                    </div>
+                    {geminiError && <p className="mt-1 text-sm text-red-600">{geminiError}</p>}
+                    {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+                </div>
+
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        国際区分 <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="text"
-                        placeholder="例：東京都渋谷区〇〇"
-                        value={address}
-                        onChange={(e) => {
-                            setAddress(e.target.value);
-                            const newPref = extractPrefectureFromAddress(e.target.value);
-                            setPrefecture(newPref);
-                        }}
-                        className={`w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 ${errors.address
-                            ? "border-red-500 focus:ring-red-500"
-                            : "border-gray-300 focus:ring-blue-500"
-                            }`}
+                        value={internationalType}
+                        readOnly
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-100 text-gray-700"
                     />
-                    {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
+                </div>
+
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {internationalType === "日本" ? "都道府県" : "国名"} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={region}
+                        readOnly
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-100 text-gray-700"
+                    />
+                    {errors.region && <p className="mt-1 text-sm text-red-600">{errors.region}</p>}
                 </div>
 
                 <div className="mt-4">
@@ -310,20 +402,7 @@ export default function PlaceForm({
                     </select>
                 </div>
 
-                <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        都道府県 <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        value={prefecture}
-                        onChange={(e) => setPrefecture(e.target.value)}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        {PREFECTURES.map((p: string) => (
-                            <option key={p} value={p}>{p}</option>
-                        ))}
-                    </select>
-                </div>
+                {/* 都道府県欄はregionで一元化したため削除 */}
 
                 <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">

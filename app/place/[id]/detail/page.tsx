@@ -53,7 +53,11 @@ export default function PlaceDetailPage() {
             <div className="mx-auto max-w-3xl px-4">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <p className="text-xs text-gray-500">{place.prefecture ?? "都道府県未設定"}</p>
+                        <p className="text-xs text-gray-500">
+                            {place.internationalType && place.region
+                                ? `${place.internationalType} / ${place.region}`
+                                : place.prefecture ?? "地域未設定"}
+                        </p>
                         <h1 className="text-3xl font-bold text-gray-900">{place.title}</h1>
                         <p className="mt-2 text-gray-700">{place.address ?? "住所未設定"}</p>
                         {place.station && <p className="text-sm text-gray-500">最寄り駅: {place.station}</p>}

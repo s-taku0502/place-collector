@@ -12,7 +12,7 @@ export default function WantListPage() {
     const router = useRouter();
     const deletePlace = useMutation(api.places.remove);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedPrefecture, setSelectedPrefecture] = useState("");
+    const [selectedRegion, setSelectedRegion] = useState("");
     const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
     const [selectedSeasons, setSelectedSeasons] = useState<string[]>([]);
     const [showSearchModal, setShowSearchModal] = useState(false);
@@ -20,28 +20,24 @@ export default function WantListPage() {
 
     const filteredPlaces = useMemo(() => {
         if (!places) return [];
-        
+
         return places.filter(p => {
-            const matchesSearch = 
+            const matchesSearch =
                 p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (p.address?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
                 (p.genre?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-            
-            const matchesPrefecture = !selectedPrefecture || p.prefecture === selectedPrefecture;
-            
+            const matchesRegion = !selectedRegion || p.region === selectedRegion;
             const matchesGenre = selectedGenres.length === 0 || (p.genre && selectedGenres.includes(p.genre));
-            
-            const matchesSeasons = selectedSeasons.length === 0 || 
+            const matchesSeasons = selectedSeasons.length === 0 ||
                 (p.seasons && p.seasons.some(s => selectedSeasons.includes(s)));
-            
-            return matchesSearch && matchesPrefecture && matchesGenre && matchesSeasons;
+            return matchesSearch && matchesRegion && matchesGenre && matchesSeasons;
         });
-    }, [places, searchQuery, selectedPrefecture, selectedGenres, selectedSeasons]);
+    }, [places, searchQuery, selectedRegion, selectedGenres, selectedSeasons]);
 
-    const prefectures = useMemo(() => {
+    const regions = useMemo(() => {
         if (!places) return [];
-        const prefSet = new Set(places.map(p => p.prefecture).filter(Boolean));
-        return Array.from(prefSet).sort();
+        const regionSet = new Set(places.map(p => p.region).filter(Boolean));
+        return Array.from(regionSet).sort();
     }, [places]);
 
     const genres = useMemo(() => {
@@ -89,12 +85,12 @@ export default function WantListPage() {
                         <button
                             onClick={() => setShowFilterModal(true)}
                             className="rounded-lg bg-gray-200 hover:bg-gray-300 p-2 text-gray-700 transition relative"
-                            title="都道府県フィルター"
+                            title="地域フィルター"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                             </svg>
-                            {selectedPrefecture && (
+                            {selectedRegion && (
                                 <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                                     ✓
                                 </span>
@@ -140,20 +136,21 @@ export default function WantListPage() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
                         <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg max-h-96 overflow-y-auto">
                             <h2 className="mb-4 text-lg font-semibold text-gray-900">フィルター</h2>
-                            
-                            {/* 都道府県フィルター */}
+
+                            <h2 className="mb-4 text-lg font-semibold text-gray-900">フィルター</h2>
+                            {/* 地域フィルター */}
                             <div className="mb-6">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    都道府県
+                                    地域
                                 </label>
                                 <select
-                                    value={selectedPrefecture}
-                                    onChange={(e) => setSelectedPrefecture(e.target.value)}
+                                    value={selectedRegion}
+                                    onChange={(e) => setSelectedRegion(e.target.value)}
                                     className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 >
                                     <option value="">すべて</option>
-                                    {prefectures.map(pref => (
-                                        <option key={pref} value={pref}>{pref}</option>
+                                    {regions.map(region => (
+                                        <option key={region} value={region}>{region}</option>
                                     ))}
                                 </select>
                             </div>
@@ -213,7 +210,7 @@ export default function WantListPage() {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => {
-                                        setSelectedPrefecture("");
+                                        setSelectedRegion("");
                                         setSelectedGenres([]);
                                         setSelectedSeasons([]);
                                     }}
@@ -234,7 +231,7 @@ export default function WantListPage() {
 
                 {!filteredPlaces?.length && (
                     <div className="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center text-gray-600">
-                        {places?.length === 0 
+                        {places?.length === 0
                             ? "まだ行きたい場所がありません。追加してみましょう。"
                             : "検索条件に一致する場所がありません。"
                         }
@@ -283,5 +280,5 @@ export default function WantListPage() {
                 </div>
             </div>
         </main>
-    );
+    )
 }

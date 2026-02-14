@@ -14,6 +14,8 @@ export default function NewPlace() {
             await add({
                 ...values,
                 status: STATUSES[DEFAULT_STATUS_INDEX],
+                internationalType: values.internationalType,
+                region: values.region,
             });
             router.push("/");
         } catch (err) {
