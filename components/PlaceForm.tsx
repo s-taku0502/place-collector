@@ -339,6 +339,8 @@ export default function PlaceForm({
                                 : "border-gray-300 focus:ring-blue-500"
                                 }`}
                         />
+                        {/* 一時非表示 */}
+                        {/*
                         <button
                             type="button"
                             className="rounded bg-blue-500 text-white px-3 py-2 text-sm font-semibold hover:bg-blue-600 disabled:opacity-50"
@@ -362,6 +364,7 @@ export default function PlaceForm({
                         >
                             {isGeminiLoading ? "判別中..." : "地域を反映する"}
                         </button>
+                        */}
                     </div>
                     {geminiError && <p className="mt-1 text-sm text-red-600">{geminiError}</p>}
                     {errors.address && <p className="mt-1 text-sm text-red-600">{errors.address}</p>}
