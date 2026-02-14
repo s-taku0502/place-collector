@@ -3,16 +3,16 @@ import { v } from "convex/values";
 
 export const add = mutation({
   args: {
-    title: v.string(),
-    address: v.string(),
+    title: v.optional(v.string()),
+    address: v.optional(v.string()),
     station: v.optional(v.string()),
-    genre: v.string(),
+    genre: v.optional(v.string()),
     internationalType: v.optional(v.string()),
     region: v.optional(v.string()),
     prefecture: v.optional(v.string()),
-    seasons: v.array(v.string()),
-    mood: v.string(),
-    status: v.string(),
+    seasons: v.optional(v.array(v.string())),
+    mood: v.optional(v.string()),
+    status: v.optional(v.string()),
     beforeMemo: v.optional(v.string()),
     beforeUrl: v.optional(v.string()),
     afterMemos: v.optional(
