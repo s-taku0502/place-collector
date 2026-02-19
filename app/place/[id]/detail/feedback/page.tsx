@@ -19,6 +19,7 @@ export default function PlaceFeedbackPage() {
     const [memo, setMemo] = useState("");
     const [visitedDate, setVisitedDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [dateError, setDateError] = useState<string>("");
 
     if (!id) return <main className="p-6">ID が指定されていません</main>;
     if (place === undefined) return <main className="p-6">読み込み中…</main>;
@@ -26,7 +27,19 @@ export default function PlaceFeedbackPage() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setDateError("");
         if (!rating || !wantToVisitAgain || !memo.trim()) return;
+
+        // 日付バリデーション: 入力があり未来日ならエラー
+        if (visitedDate) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const inputDate = new Date(visitedDate);
+            if (inputDate > today) {
+                setDateError("未来の日付は選択できません");
+                return;
+            }
+        }
 
         setIsSubmitting(true);
         try {
@@ -123,13 +136,15 @@ export default function PlaceFeedbackPage() {
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium text-gray-800">行った日付 <span className="text-gray-500">(任意)</span></label>
+                            <label className="text-sm font-medium text-gray-800">行った日付 <span className="text-gray-500">(当日以前のみ)</span></label>
                             <input
                                 type="date"
                                 className="mt-2 w-full rounded-lg border border-gray-200 p-3 text-sm shadow-sm focus:border-gray-400 focus:outline-none"
                                 value={visitedDate}
                                 onChange={e => setVisitedDate(e.target.value)}
+                                max={new Date().toISOString().split("T")[0]}
                             />
+                            {dateError && <p className="mt-1 text-sm text-red-600">{dateError}</p>}
                         </div>
 
                         <button
