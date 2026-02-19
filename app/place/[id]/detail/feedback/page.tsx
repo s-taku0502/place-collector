@@ -17,6 +17,7 @@ export default function PlaceFeedbackPage() {
     const [rating, setRating] = useState<string>("");
     const [wantToVisitAgain, setWantToVisitAgain] = useState<string>("");
     const [memo, setMemo] = useState("");
+    const [visitedDate, setVisitedDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     if (!id) return <main className="p-6">ID が指定されていません</main>;
@@ -35,6 +36,7 @@ export default function PlaceFeedbackPage() {
                 rating: Number(rating),
                 wantToVisitAgain,
                 url: undefined,
+                visitedDate: visitedDate || undefined,
             });
             router.push(`/place/${place._id}/detail`);
         } finally {
@@ -118,6 +120,15 @@ export default function PlaceFeedbackPage() {
                                 rows={6}
                                 value={memo}
                                 onChange={(e) => setMemo(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-800">行った日付 <span className="text-gray-500">(任意)</span></label>
+                            <input
+                                type="date"
+                                className="mt-2 w-full rounded-lg border border-gray-200 p-3 text-sm shadow-sm focus:border-gray-400 focus:outline-none"
+                                value={visitedDate}
+                                onChange={e => setVisitedDate(e.target.value)}
                             />
                         </div>
 

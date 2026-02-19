@@ -26,6 +26,7 @@ export const add = mutation({
         })
       )
     ),
+    visitedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = (await ctx.auth.getUserIdentity())?.subject;
@@ -49,25 +50,9 @@ export const add = mutation({
       beforeMemo: args.beforeMemo,
       beforeUrl: args.beforeUrl,
       afterMemos: args.afterMemos,
+      visitedDate: args.visitedDate,
     };
-    await ctx.db.insert("places", place as {
-      userId: string;
-      title: string;
-      createdAt: number;
-      updatedAt: number;
-      address?: string;
-      station?: string;
-      genre?: string;
-      internationalType?: string;
-      region?: string;
-      prefecture?: string;
-      seasons?: string[];
-      mood?: string;
-      status?: string;
-      beforeMemo?: string;
-      beforeUrl?: string;
-      afterMemos?: any;
-    });
+    await ctx.db.insert("places", place);
   },
 });
 
@@ -112,6 +97,7 @@ export const get = query({
   },
 });
 
+
 export const update = mutation({
   args: {
     id: v.id("places"),
@@ -141,6 +127,7 @@ export const update = mutation({
     afterMemo: v.optional(v.string()),
     afterUrl: v.optional(v.string()),
     rating: v.optional(v.number()),
+    visitedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updateData } = args;
@@ -183,6 +170,7 @@ export const updatePartial = mutation({
     rating: v.optional(v.number()),
     instagramUrl: v.optional(v.string()), // 旧フィールド互換
     memo: v.optional(v.string()), // 旧フィールド互換
+    visitedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...rest } = args;
@@ -212,8 +200,9 @@ export const addAfterMemo = mutation({
     url: v.optional(v.string()),
     rating: v.number(),
     wantToVisitAgain: v.string(),
+    visitedDate: v.optional(v.string()),
   },
-  handler: async (ctx, { id, memo, url, rating, wantToVisitAgain }) => {
+  handler: async (ctx, { id, memo, url, rating, wantToVisitAgain, visitedDate }) => {
     const place = await ctx.db.get(id);
     if (!place) throw new Error("Not found");
 
@@ -230,6 +219,7 @@ export const addAfterMemo = mutation({
             rating: place.rating,
             wantToVisitAgain: undefined,
             createdAt: place.updatedAt ?? place.createdAt ?? createdAt,
+            visitedDate: place.visitedDate ?? undefined,
           },
         ]
         : existingMemos;
@@ -237,7 +227,7 @@ export const addAfterMemo = mutation({
     await ctx.db.patch(id, {
       afterMemos: [
         ...seededMemos,
-        { memo, url, rating, wantToVisitAgain, createdAt },
+        { memo, url, rating, wantToVisitAgain, createdAt, visitedDate },
       ],
       updatedAt: createdAt,
     });

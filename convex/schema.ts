@@ -55,10 +55,13 @@ export default defineSchema({
           rating: v.optional(v.number()),
           wantToVisitAgain: v.optional(v.string()),
           createdAt: v.number(),
+          visitedDate: v.optional(v.string()), // 追加: afterMemosごとの日付
         })
       )
     ), // 複数の行ったあとのメモ
     rating: v.optional(v.number()), // 評価（1-5）
+    // 新フィールド
+    visitedDate: v.optional(v.string()), // 行った日付（ISO文字列）
     // 旧フィールド（後方互換性）
     instagramUrl: v.optional(v.string()),
     visited: v.optional(v.boolean()),
