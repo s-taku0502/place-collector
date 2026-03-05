@@ -140,7 +140,9 @@ export const listByStatus = query({
     if (shortId && shortId !== userId) {
       const placesForShortId = await ctx.db
         .query("places")
-        .filter((q: any) => q.and(q.eq(q.field("userId"), shortId), q.eq(q.field("status"), args.status)))
+        .withIndex("by_user_status", (q: any) =>
+          q.eq("userId", shortId).eq("status", args.status)
+        )
         .collect();
       
       return placesForShortId;
