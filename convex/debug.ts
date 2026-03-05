@@ -7,7 +7,7 @@ import { auth } from "./auth";
  */
 export const getCurrentUserIdentity = query({
     args: {},
-    handler: async (ctx) => {
+    handler: async (ctx): Promise<Record<string, any>> => {
         // 方法1: identity オブジェクト（JWT デコード結果）
         const identity = await ctx.auth.getUserIdentity();
 
@@ -45,26 +45,25 @@ export const getCurrentUserIdentity = query({
         const allPlaces = await ctx.db.query("places").collect();
         const uniqueUserIds = Array.from(new Set(allPlaces.map((p) => p.userId)));
 
-        return {
+        const result: Record<string, any> = {
             authenticated: true,
             identity: {
-                subject: identity?.subject,
-                email: identity?.email,
-                emailVerified: identity?.emailVerified,
-                givenName: identity?.givenName || "(none)",
-                familyName: identity?.familyName || "(none)",
-                picture: identity?.picture || "(none)",
-                issuer: identity?.issuer,
-                orgId: identity?.orgId,
-                tokenIdentifier: identity?.tokenIdentifier,
-                // 全フィールド列挙（隠れたフィールドを見つけるため）
+                subject: identity?.subject || null,
+                email: identity?.email || null,
+                emailVerified: identity?.emailVerified || false,
+                givenName: identity?.givenName || null,
+                familyName: identity?.familyName || null,
+                picture: identity?.picture || null,
+                issuer: identity?.issuer || null,
+                orgId: identity?.orgId || null,
+                tokenIdentifier: identity?.tokenIdentifier || null,
                 allKeys: Object.keys(identity || {}),
             },
             auth: {
-                userId: userId,
+                userId: userId || null,
                 userType: typeof userId,
             },
-            authUser: authUser ? { _id: authUser._id, email: authUser.email } : null,
+            authUser: authUser ? { _id: authUser._id, email: authUser.email || null } : null,
             places: {
                 countForUserId: placesForUserId.length,
                 countForIdentSubject: placesForIdentSub.length,
@@ -82,5 +81,7 @@ export const getCurrentUserIdentity = query({
                 uniqueUserIds: uniqueUserIds.sort(),
             },
         };
+
+        return result;
     },
 });
