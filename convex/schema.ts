@@ -54,6 +54,7 @@ export default defineSchema({
           url: v.optional(v.string()),
           rating: v.optional(v.number()),
           wantToVisitAgain: v.optional(v.string()),
+          visitedDate: v.optional(v.string()),
           createdAt: v.number(),
         })
       )
