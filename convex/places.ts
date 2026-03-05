@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { auth } from "./auth";
 
 export const add = mutation({
   args: {
@@ -29,7 +30,7 @@ export const add = mutation({
     visitedDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = (await ctx.auth.getUserIdentity())?.subject;
+    const userId = await auth.getUserId(ctx);
     if (!userId) throw new Error("Unauthorized");
 
     // 必須フィールドは空文字デフォルト、optionalはundefinedなら渡さない
@@ -59,7 +60,7 @@ export const add = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const userId = (await ctx.auth.getUserIdentity())?.subject;
+    const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
     return await ctx.db
@@ -72,7 +73,7 @@ export const list = query({
 export const listByStatus = query({
   args: { status: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const userId = (await ctx.auth.getUserIdentity())?.subject;
+    const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
     if (!args.status) {
@@ -240,7 +241,7 @@ export const remove = mutation({
     const place = await ctx.db.get(id);
     if (!place) throw new Error("Not found");
 
-    const userId = (await ctx.auth.getUserIdentity())?.subject;
+    const userId = await auth.getUserId(ctx);
     if (!userId || place.userId !== userId) {
       throw new Error("Unauthorized");
     }
