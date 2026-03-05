@@ -53,8 +53,8 @@ export default function DebugAuthPage() {
     }
 
     const userIdMatch = data.auth_userId === data.identity_subject;
-    const dataFoundForUserId = data.places_count_for_userId > 0;
-    const dataFoundForIdentSubject = data.places_count_for_identity_subject > 0;
+    const dataFoundForUserId = (data.places_count_for_userId ?? 0) > 0;
+    const dataFoundForIdentSubject = (data.places_count_for_identity_subject ?? 0) > 0;
 
     return (
         <main className="min-h-screen bg-gray-100 p-8">
