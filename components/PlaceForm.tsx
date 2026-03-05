@@ -37,7 +37,6 @@ export type PlaceFormValues = {
     mood: string;
     beforeMemo?: string;
     beforeUrl?: string;
-    visitedDate?: string; // 追加: 行った日付 (ISO形式)
 };
 
 export function getDefaultPlaceFormValues(): PlaceFormValues {
@@ -52,7 +51,6 @@ export function getDefaultPlaceFormValues(): PlaceFormValues {
         mood: MOODS[DEFAULT_MOOD_INDEX],
         beforeMemo: "",
         beforeUrl: "",
-        visitedDate: "", // 追加
     };
 }
 
@@ -151,7 +149,6 @@ export default function PlaceForm({
     const [mood, setMood] = useState(initialValues?.mood ?? MOODS[DEFAULT_MOOD_INDEX]);
     const [beforeMemo, setBeforeMemo] = useState(initialValues?.beforeMemo ?? "");
     const [beforeUrl, setBeforeUrl] = useState(initialValues?.beforeUrl ?? "");
-    const [visitedDate, setVisitedDate] = useState(initialValues?.visitedDate ?? "");
     const [errors, setErrors] = useState<PlaceFormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -199,10 +196,7 @@ export default function PlaceForm({
                     spa: "温泉",
                     store: "ショップ",
                     shopping_mall: "ショップ",
-                // visitedDateは任意なのでバリデーションは必須でないが、将来必須化する場合はここでチェック
-                // if (values.visitedDate && !/^\d{4}-\d{2}-\d{2}$/.test(values.visitedDate)) {
-                //     errors.visitedDate = "日付の形式が正しくありません";
-                // }
+                
                     clothing_store: "ショップ",
                     amusement_park: "レジャー",
                     zoo: "レジャー",
@@ -224,7 +218,7 @@ export default function PlaceForm({
                 }
             }
 
-            // 季節の自動推定
+                // 季節の自動推定
             const titleAndAddress = ((typeof obj.displayName === "string" ? obj.displayName : typeof obj.name === "string" ? obj.name : "") + (typeof obj.formattedAddress === "string" ? obj.formattedAddress : "")).toLowerCase();
             const newSeasons: string[] = [];
             if (titleAndAddress.includes("桜") || titleAndAddress.includes("花見") || titleAndAddress.includes("sakura")) {
@@ -321,19 +315,6 @@ export default function PlaceForm({
                                 : "border-gray-300 focus:ring-blue-500"
                                 }`}
                         />
-                        {/* 行った日付欄 */}
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                行った日付 <span className="text-gray-500">(任意)</span>
-                            </label>
-                            <input
-                                type="date"
-                                value={visitedDate}
-                                onChange={e => setVisitedDate(e.target.value)}
-                                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            {errors.visitedDate && <p className="mt-1 text-sm text-red-600">{errors.visitedDate}</p>}
-                        </div>
                     </div>
                     {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                 </div>

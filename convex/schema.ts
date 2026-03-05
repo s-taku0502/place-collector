@@ -56,7 +56,7 @@ export default defineSchema({
           wantToVisitAgain: v.optional(v.string()),
           visitedDate: v.optional(v.string()),
           createdAt: v.number(),
-          visitedDate: v.optional(v.string()), // 追加: afterMemosごとの日付
+          
         })
       )
     ), // 複数の行ったあとのメモ
