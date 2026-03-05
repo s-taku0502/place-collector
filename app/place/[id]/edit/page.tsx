@@ -32,6 +32,7 @@ export default function EditPage() {
             // status: values.status || undefined,
             beforeMemo: values.beforeMemo || undefined,
             beforeUrl: values.beforeUrl || undefined,
+            visitedDate: values.visitedDate || undefined,
         });
         router.push("/");
     };
@@ -52,6 +53,7 @@ export default function EditPage() {
                         // status: place.status ?? undefined,
                         beforeMemo: place.beforeMemo ?? (place as unknown as { memo?: string }).memo ?? "",
                         beforeUrl: place.beforeUrl ?? (place as unknown as { instagramUrl?: string }).instagramUrl ?? "",
+                        visitedDate: place.visitedDate ?? "",
                     }}
                     onSubmit={handleSubmit}
                     submitLabel="保存"

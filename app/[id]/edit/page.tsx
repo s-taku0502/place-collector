@@ -25,12 +25,14 @@ export default function EditPage() {
         const title = (formData.get("title") as string | null)?.trim() ?? "";
         const instagramUrl = (formData.get("instagramUrl") as string | null)?.trim() ?? "";
         const memo = (formData.get("memo") as string | null)?.trim() ?? "";
+        const visitedDate = (formData.get("visitedDate") as string | null) || undefined;
 
         await updatePartial({
             id: place._id,
             title,
             instagramUrl,
             memo: memo || undefined,
+            visitedDate: visitedDate || undefined,
         });
         router.push("/");
     }
@@ -47,6 +49,15 @@ export default function EditPage() {
                         defaultValue={place.title ?? ""}
                         type="text"
                         placeholder="タイトル"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">行った日付</label>
+                    <input
+                        className="mt-1 w-full rounded-md border border-gray-300 p-2"
+                        name="visitedDate"
+                        type="date"
+                        defaultValue={place.visitedDate ? place.visitedDate.slice(0, 10) : ""}
                     />
                 </div>
                 <div>
