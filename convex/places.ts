@@ -93,7 +93,7 @@ async function getPlacesForUserWithFallback(ctx: any, userId: string) {
   // identity.subject = "jx78fqgavs7dg5vj0ykyh4fyqs8129es|jh77652xzwqwdk3eaa7jmedpen82bp0n"
   // → "jx78fqgavs7dg5vj0ykyh4fyqs8129es" で検索
   const shortId = identity.subject.split("|")[0];
-  if (shortId && shortId !== userId) {
+  if (shortId && shortId !== userId && shortId !== identity.subject) {
     const placesForShortId = await ctx.db
       .query("places")
       .filter((q: any) => q.eq(q.field("userId"), shortId))
