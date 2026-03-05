@@ -70,6 +70,27 @@ export const list = query({
   },
 });
 
+// フォールバック: 既存データが旧フォーマットの identity.subject に保存されている場合に対応
+async function getPlacesForUserWithFallback(ctx: any, userId: string) {
+  const placesForUser = await ctx.db
+    .query("places")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  if (placesForUser.length > 0) return placesForUser;
+
+  // 旧 API から保存された userId（identity.subject）の可能性を探る
+  const legacyUserId = (await ctx.auth.getUserIdentity())?.subject;
+  if (!legacyUserId || legacyUserId === userId) return [];
+
+  const placesForLegacy = await ctx.db
+    .query("places")
+    .withIndex("by_user", (q: any) => q.eq("userId", legacyUserId))
+    .collect();
+
+  return placesForLegacy;
+}
+
 export const listByStatus = query({
   args: { status: v.optional(v.string()) },
   handler: async (ctx, args) => {
@@ -77,15 +98,24 @@ export const listByStatus = query({
     if (!userId) return [];
 
     if (!args.status) {
-      return await ctx.db
-        .query("places")
-        .withIndex("by_user", q => q.eq("userId", userId))
-        .collect();
+      return await getPlacesForUserWithFallback(ctx, userId);
     }
+
+    // まず通常の userId で検索
+    const placesByStatus = await ctx.db
+      .query("places")
+      .withIndex("by_user_status", (q: any) => q.eq("userId", userId).eq("status", args.status))
+      .collect();
+
+    if (placesByStatus.length > 0) return placesByStatus;
+
+    // フォールバックで legacy userId を試す
+    const legacyUserId = (await ctx.auth.getUserIdentity())?.subject;
+    if (!legacyUserId || legacyUserId === userId) return [];
 
     return await ctx.db
       .query("places")
-      .withIndex("by_user_status", q => q.eq("userId", userId).eq("status", args.status))
+      .withIndex("by_user_status", (q: any) => q.eq("userId", legacyUserId).eq("status", args.status))
       .collect();
   },
 });
