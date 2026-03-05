@@ -63,15 +63,13 @@ export const list = query({
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
-    return await ctx.db
-      .query("places")
-      .withIndex("by_user", q => q.eq("userId", userId))
-      .collect();
+    return await getPlacesForUserWithFallback(ctx, userId);
   },
 });
 
 // フォールバック: 既存データが旧フォーマットの identity.subject に保存されている場合に対応
 async function getPlacesForUserWithFallback(ctx: any, userId: string) {
+  // 1. 現在の userId で検索
   const placesForUser = await ctx.db
     .query("places")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
@@ -79,16 +77,32 @@ async function getPlacesForUserWithFallback(ctx: any, userId: string) {
 
   if (placesForUser.length > 0) return placesForUser;
 
-  // 旧 API から保存された userId（identity.subject）の可能性を探る
-  const legacyUserId = (await ctx.auth.getUserIdentity())?.subject;
-  if (!legacyUserId || legacyUserId === userId) return [];
+  // 2. 旧 API から保存された userId（identity.subject）の可能性を探る
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity?.subject) return [];
 
+  // 2a. identity.subject で完全一致検索
   const placesForLegacy = await ctx.db
     .query("places")
-    .withIndex("by_user", (q: any) => q.eq("userId", legacyUserId))
+    .withIndex("by_user", (q: any) => q.eq("userId", identity.subject))
     .collect();
 
-  return placesForLegacy;
+  if (placesForLegacy.length > 0) return placesForLegacy;
+
+  // 2b. identity.subject の短い部分（| の前）でも検索
+  // identity.subject = "jx78fqgavs7dg5vj0ykyh4fyqs8129es|jh77652xzwqwdk3eaa7jmedpen82bp0n"
+  // → "jx78fqgavs7dg5vj0ykyh4fyqs8129es" で検索
+  const shortId = identity.subject.split("|")[0];
+  if (shortId && shortId !== userId && shortId !== identity.subject) {
+    const placesForShortId = await ctx.db
+      .query("places")
+      .filter((q: any) => q.eq(q.field("userId"), shortId))
+      .collect();
+    
+    if (placesForShortId.length > 0) return placesForShortId;
+  }
+
+  return [];
 }
 
 export const listByStatus = query({
@@ -109,14 +123,32 @@ export const listByStatus = query({
 
     if (placesByStatus.length > 0) return placesByStatus;
 
-    // フォールバックで legacy userId を試す
-    const legacyUserId = (await ctx.auth.getUserIdentity())?.subject;
-    if (!legacyUserId || legacyUserId === userId) return [];
+    // フォールバック: 旧 userId で検索
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity?.subject) return [];
 
-    return await ctx.db
+    // identity.subject で検索
+    const placesForLegacy = await ctx.db
       .query("places")
-      .withIndex("by_user_status", (q: any) => q.eq("userId", legacyUserId).eq("status", args.status))
+      .withIndex("by_user_status", (q: any) => q.eq("userId", identity.subject).eq("status", args.status))
       .collect();
+
+    if (placesForLegacy.length > 0) return placesForLegacy;
+
+    // identity.subject の短い部分でも検索
+    const shortId = identity.subject.split("|")[0];
+    if (shortId && shortId !== userId) {
+      const placesForShortId = await ctx.db
+        .query("places")
+        .withIndex("by_user_status", (q: any) =>
+          q.eq("userId", shortId).eq("status", args.status)
+        )
+        .collect();
+      
+      return placesForShortId;
+    }
+
+    return [];
   },
 });
 

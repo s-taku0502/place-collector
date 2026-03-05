@@ -21,7 +21,7 @@ export default function WantListPage() {
     const filteredPlaces = useMemo(() => {
         if (!places) return [];
 
-        return places.filter(p => {
+        return places.filter((p: any) => {
             const matchesSearch =
                 p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (p.address?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
@@ -29,28 +29,30 @@ export default function WantListPage() {
             const matchesRegion = !selectedRegion || p.region === selectedRegion;
             const matchesGenre = selectedGenres.length === 0 || (p.genre && selectedGenres.includes(p.genre));
             const matchesSeasons = selectedSeasons.length === 0 ||
-                (p.seasons && p.seasons.some(s => selectedSeasons.includes(s)));
+                (p.seasons && p.seasons.some((s: string) => selectedSeasons.includes(s)));
             return matchesSearch && matchesRegion && matchesGenre && matchesSeasons;
         });
     }, [places, searchQuery, selectedRegion, selectedGenres, selectedSeasons]);
 
     const regions = useMemo(() => {
         if (!places) return [];
-        const regionSet = new Set(places.map(p => p.region).filter(Boolean));
+            const regionList = (places.map((p: any) => p.region) as Array<string | undefined>).filter(Boolean) as string[];
+            const regionSet = new Set<string>(regionList);
         return Array.from(regionSet).sort();
     }, [places]);
 
     const genres = useMemo(() => {
         if (!places) return [];
-        const genreSet = new Set(places.map(p => p.genre).filter(Boolean));
+            const genreList = (places.map((p: any) => p.genre) as Array<string | undefined>).filter(Boolean) as string[];
+            const genreSet = new Set<string>(genreList);
         return Array.from(genreSet).sort();
     }, [places]);
 
     const seasons = useMemo(() => {
         if (!places) return [];
         const seasonSet = new Set<string>();
-        places.forEach(p => {
-            p.seasons?.forEach(s => seasonSet.add(s));
+        places.forEach((p: any) => {
+            p.seasons?.forEach((s: any) => seasonSet.add(s));
         });
         return Array.from(seasonSet).sort();
     }, [places]);
@@ -149,7 +151,7 @@ export default function WantListPage() {
                                     className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 >
                                     <option value="">すべて</option>
-                                    {regions.map(region => (
+                                    {regions.map((region: string) => (
                                         <option key={region} value={region}>{region}</option>
                                     ))}
                                 </select>
@@ -239,7 +241,7 @@ export default function WantListPage() {
                 )}
 
                 <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                    {filteredPlaces?.map(p => (
+                    {filteredPlaces?.map((p: any) => (
                         <div key={p._id} className="relative rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                             <button
                                 onClick={() => handleDelete(p._id)}
