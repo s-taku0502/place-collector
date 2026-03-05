@@ -36,13 +36,15 @@ export default function WantListPage() {
 
     const regions = useMemo(() => {
         if (!places) return [];
-        const regionSet = new Set(places.map((p: any) => p.region).filter(Boolean));
+            const regionList = (places.map((p: any) => p.region) as Array<string | undefined>).filter(Boolean) as string[];
+            const regionSet = new Set<string>(regionList);
         return Array.from(regionSet).sort();
     }, [places]);
 
     const genres = useMemo(() => {
         if (!places) return [];
-        const genreSet = new Set(places.map((p: any) => p.genre).filter(Boolean));
+            const genreList = (places.map((p: any) => p.genre) as Array<string | undefined>).filter(Boolean) as string[];
+            const genreSet = new Set<string>(genreList);
         return Array.from(genreSet).sort();
     }, [places]);
 
