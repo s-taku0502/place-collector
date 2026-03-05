@@ -38,7 +38,7 @@ export default function DebugAuthPage() {
                     <p className="text-gray-500">3秒後にログインページへ移動します...</p>
                     {data.error && (
                         <div className="mt-4 p-4 bg-red-50 rounded border border-red-200">
-                            <p className="text-red-700 font-semibold">エラー详细:</p>
+                            <p className="text-red-700 font-semibold">エラー詳細:</p>
                             <p className="text-red-600 text-sm mt-2">{data.error}</p>
                             {data.error_stack && (
                                 <pre className="text-xs text-red-500 mt-2 overflow-x-auto">
