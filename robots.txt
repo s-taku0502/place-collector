@@ -1,0 +1,16 @@
+User-agent: *
+
+# トップページや静的アセットのクロールを許可
+Allow: /
+Allow: /favicon.ico
+Allow: /opengraph-image.png
+
+# 認証が必要なページやAPI、内部ディレクトリのクロールを拒否
+Disallow: /place
+Disallow: /place/*
+Disallow: /auth
+Disallow: /api/*
+Disallow: /_next/*
+
+# サイトマップの場所を指定
+Sitemap: https://spotstock.vercel.app/sitemap.xml
