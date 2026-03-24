@@ -1,27 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const user = useQuery(api.users.getCurrentUser, {});
+    const [isAdminSession, setIsAdminSession] = useState(false);
+    const [loading, setLoading] = useState(true);
     const requests = useQuery(api.users.listPasswordResetRequests, {});
     const rows = useMemo(() => requests ?? [], [requests]);
 
+    // 管理者セッションをチェック
     useEffect(() => {
-        if (user && !user.isAdmin) {
+        const adminToken = sessionStorage.getItem("adminSessionToken");
+        if (!adminToken) {
             router.replace("/admin/login");
+            return;
         }
-    }, [user, router]);
+        setIsAdminSession(true);
+        setLoading(false);
+    }, [router]);
 
-    if (!user) {
+    // ログアウト時のセッション削除
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const token = sessionStorage.getItem("adminSessionToken");
+            if (!token && isAdminSession) {
+                router.push("/admin/login");
+            }
+        };
+
+        window.addEventListener("storage", handleStorageChange);
+        return () => window.removeEventListener("storage", handleStorageChange);
+    }, [isAdminSession, router]);
+
+    if (loading) {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
-    if (!user.isAdmin) {
+
+    if (!isAdminSession) {
         return null;
     }
 
@@ -29,7 +49,6 @@ export default function AdminDashboardPage() {
     const sent = rows.filter((row) => row.status === "sent").length;
     const pending = total - sent;
     const recent = rows.slice(0, 5);
-
 
     return (
         <main

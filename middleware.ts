@@ -5,7 +5,8 @@ import {
 } from "@convex-dev/auth/nextjs/server";
 
 // デフォルトで公開するパス
-const publicPaths = ["/signin", "/signin/reset"];
+// 一般ユーザー用と管理者用のログインページ
+const publicPaths = ["/signin", "/signin/reset", "/admin/login"];
 
 // 本番でも `/debug-auth` を見たい場合は環境変数で有効化する
 // (例: ENABLE_DEBUG_AUTH=true)
@@ -17,6 +18,7 @@ const isPublicPage = createRouteMatcher(publicPaths);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   // 未ログインで公開ページ以外にアクセスした場合、/signin にリダイレクト
+  // 注: admin/* ページのリダイレクトはクライアント側で制御（管理者用と一般用を分離）
   if (!isPublicPage(request) && !(await convexAuth.isAuthenticated())) {
     return nextjsMiddlewareRedirect(request, "/signin");
   }
