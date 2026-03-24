@@ -342,8 +342,18 @@ export const remove = mutation({
     const place = await ctx.db.get(id);
     if (!place) throw new Error("Not found");
 
+    const identity = await ctx.auth.getUserIdentity();
     const userId = await auth.getUserId(ctx);
-    if (!userId || place.userId !== userId) {
+    
+    // 削除権限のチェックを強化
+    const searchIds = new Set<string>();
+    if (userId) searchIds.add(userId);
+    if (identity?.subject) {
+      searchIds.add(identity.subject);
+      identity.subject.split("|").forEach(p => searchIds.add(p));
+    }
+
+    if (!searchIds.has(place.userId)) {
       throw new Error("Unauthorized");
     }
 
