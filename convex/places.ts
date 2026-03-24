@@ -67,41 +67,66 @@ export const list = query({
   },
 });
 
-// フォールバック: 複数の ID 形式でデータを検索し、マージして返す
-// これにより、ID 形式の遷移期間中でも全てのデータが表示される
+/**
+ * フォールバック: 複数の ID 形式でデータを検索し、マージして返す
+ * 
+ * 対応する ID 形式：
+ * 1. 現在の userId (j... 形式)
+ * 2. identity.subject 全体 (password|j... または password|k... 形式)
+ * 3. identity.subject の各部分 (| で分割した各要素)
+ * 
+ * これにより、ID 形式の遷移期間中でも全てのデータが表示される
+ */
 async function getPlacesForUserWithFallback(ctx: any, userId: string) {
   const allPlaces = new Map<string, any>();
-
-  // 1. 現在の userId で検索
-  const placesForUser = await ctx.db
-    .query("places")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  placesForUser.forEach((p: any) => allPlaces.set(p._id, p));
-
-  // 2. 旧 API から保存された userId（identity.subject）の可能性を探る
   const identity = await ctx.auth.getUserIdentity();
-  if (identity?.subject && identity.subject !== userId) {
-    // 2a. identity.subject で完全一致検索
-    const placesForLegacy = await ctx.db
-      .query("places")
-      .withIndex("by_user", (q: any) => q.eq("userId", identity.subject))
-      .collect();
-    placesForLegacy.forEach((p: any) => allPlaces.set(p._id, p));
-
-    // 2b. identity.subject の短い部分（| の前）でも検索
-    // identity.subject = "jx78fqgavs7dg5vj0ykyh4fyqs8129es|jh77652xzwqwdk3eaa7jmedpen82bp0n"
-    // → "jx78fqgavs7dg5vj0ykyh4fyqs8129es" で検索
-    const shortId = identity.subject.split("|")[0];
-    if (shortId && shortId !== userId && shortId !== identity.subject) {
-      const placesForShortId = await ctx.db
+  
+  // 検索対象のIDを全てリストアップ
+  const searchIds = new Set<string>();
+  
+  // 1. 現在の userId を追加
+  if (userId) {
+    searchIds.add(userId);
+  }
+  
+  // 2. identity.subject とその分割要素を追加
+  if (identity?.subject) {
+    searchIds.add(identity.subject);
+    
+    // "provider|id" 形式の場合、各部分を分解して追加
+    // 例: "password|k571hd34wbaedmad69..." → ["password", "k571hd34wbaedmad69..."]
+    const parts = identity.subject.split("|");
+    parts.forEach(part => {
+      if (part && part.trim()) {
+        searchIds.add(part);
+      }
+    });
+  }
+  
+  // 3. 全ての候補IDで検索を実行
+  for (const id of searchIds) {
+    try {
+      const places = await ctx.db
         .query("places")
-        .filter((q: any) => q.eq(q.field("userId"), shortId))
+        .withIndex("by_user", (q: any) => q.eq("userId", id))
         .collect();
-      placesForShortId.forEach((p: any) => allPlaces.set(p._id, p));
+      
+      places.forEach((p: any) => allPlaces.set(p._id, p));
+    } catch (err) {
+      // インデックス検索に失敗した場合、フィルター検索にフォールバック
+      try {
+        const places = await ctx.db
+          .query("places")
+          .filter((q: any) => q.eq(q.field("userId"), id))
+          .collect();
+        
+        places.forEach((p: any) => allPlaces.set(p._id, p));
+      } catch {
+        // スキップ
+      }
     }
   }
-
+  
   // 全ての ID 形式で見つかったデータをマージして返す
   return Array.from(allPlaces.values());
 }
@@ -118,34 +143,47 @@ export const listByStatus = query({
 
     // 複数の ID 形式でデータを検索し、マージして返す
     const allPlaces = new Map<string, any>();
-
-    // 1. 通常の userId で検索
-    const placesByStatus = await ctx.db
-      .query("places")
-      .withIndex("by_user_status", (q: any) => q.eq("userId", userId).eq("status", args.status))
-      .collect();
-    placesByStatus.forEach((p: any) => allPlaces.set(p._id, p));
-
-    // 2. フォールバック: 旧 userId で検索
     const identity = await ctx.auth.getUserIdentity();
-    if (identity?.subject && identity.subject !== userId) {
-      // identity.subject で検索
-      const placesForLegacy = await ctx.db
-        .query("places")
-        .withIndex("by_user_status", (q: any) => q.eq("userId", identity.subject).eq("status", args.status))
-        .collect();
-      placesForLegacy.forEach((p: any) => allPlaces.set(p._id, p));
-
-      // identity.subject の短い部分でも検索
-      const shortId = identity.subject.split("|")[0];
-      if (shortId && shortId !== userId && shortId !== identity.subject) {
-        const placesForShortId = await ctx.db
+    
+    // 検索対象のIDを全てリストアップ
+    const searchIds = new Set<string>();
+    
+    if (userId) {
+      searchIds.add(userId);
+    }
+    
+    if (identity?.subject) {
+      searchIds.add(identity.subject);
+      
+      const parts = identity.subject.split("|");
+      parts.forEach(part => {
+        if (part && part.trim()) {
+          searchIds.add(part);
+        }
+      });
+    }
+    
+    // 全ての候補IDで検索を実行
+    for (const id of searchIds) {
+      try {
+        const places = await ctx.db
           .query("places")
-          .withIndex("by_user_status", (q: any) =>
-            q.eq("userId", shortId).eq("status", args.status)
-          )
+          .withIndex("by_user_status", (q: any) => q.eq("userId", id).eq("status", args.status))
           .collect();
-        placesForShortId.forEach((p: any) => allPlaces.set(p._id, p));
+        
+        places.forEach((p: any) => allPlaces.set(p._id, p));
+      } catch (err) {
+        // インデックス検索に失敗した場合、フィルター検索にフォールバック
+        try {
+          const places = await ctx.db
+            .query("places")
+            .filter((q: any) => q.eq(q.field("userId"), id).eq(q.field("status"), args.status))
+            .collect();
+          
+          places.forEach((p: any) => allPlaces.set(p._id, p));
+        } catch {
+          // スキップ
+        }
       }
     }
 
