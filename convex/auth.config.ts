@@ -1,7 +1,19 @@
 import { AuthConfig } from "convex/server";
 
-// 本番環境では CONVEX_SITE_URL にアプリのオリジン（例: https://example.com）を設定して
-// Convex の認証クッキーのドメインを合わせる必要があります。
+/**
+ * Convex Authentication Configuration
+ *
+ * IMPORTANT: For production, ensure these environment variables are set:
+ * - CONVEX_SITE_URL: Your production domain (e.g., https://spotstock.vercel.app)
+ * - NEXT_PUBLIC_SITE_URL: Your production domain
+ * - VERCEL_URL: Automatically set by Vercel (fallback)
+ *
+ * Without proper domain configuration, authentication cookies will have an
+ * incorrect domain and users will lose their session after re-login.
+ *
+ * See PRODUCTION_AUTH_FIX.md for detailed setup instructions.
+ */
+
 const siteUrl =
   process.env.CONVEX_SITE_URL ||
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -13,7 +25,11 @@ if (!siteUrl) {
   // （プロジェクトのデプロイ環境で環境変数を設定してください）
   // eslint-disable-next-line no-console
   console.warn(
-    "CONVEX_SITE_URL (or NEXT_PUBLIC_SITE_URL / VERCEL_URL) is not set. Convex auth cookie domain may be incorrect in production."
+    "[CONVEX AUTH] ⚠️  CONVEX_SITE_URL is not set. " +
+    "Convex authentication cookie domain may be incorrect in production. " +
+    "This will cause users to lose their session after re-login. " +
+    "Please set CONVEX_SITE_URL in your deployment environment (e.g., Vercel). " +
+    "See PRODUCTION_AUTH_FIX.md for instructions."
   );
 }
 
