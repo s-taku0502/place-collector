@@ -110,9 +110,18 @@ export default function WantListPage() {
 
                 {/* 検索モーダル */}
                 {showSearchModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
-                        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900">キーワード検索</h2>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg relative">
+                            <div className="mb-4 flex items-start justify-between">
+                                <h2 className="text-lg font-semibold text-gray-900">キーワード検索</h2>
+                                <button
+                                    onClick={() => setShowSearchModal(false)}
+                                    aria-label="閉じる"
+                                    className="ml-4 text-gray-500 hover:text-gray-700"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                             <input
                                 type="text"
                                 placeholder="場所名、住所、ジャンルで検索..."
@@ -126,7 +135,7 @@ export default function WantListPage() {
                                     onClick={() => setShowSearchModal(false)}
                                     className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-100"
                                 >
-                                    閉じる
+                                    検索
                                 </button>
                             </div>
                         </div>
@@ -135,11 +144,18 @@ export default function WantListPage() {
 
                 {/* フィルターモーダル */}
                 {showFilterModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
-                        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg max-h-96 overflow-y-auto">
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900">フィルター</h2>
-
-                            <h2 className="mb-4 text-lg font-semibold text-gray-900">フィルター</h2>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg max-h-96 overflow-y-auto relative">
+                            <div className="mb-4 flex items-start justify-between">
+                                <h2 className="text-lg font-semibold text-gray-900">フィルター</h2>
+                                <button
+                                    onClick={() => setShowFilterModal(false)}
+                                    aria-label="閉じる"
+                                    className="ml-4 text-gray-500 hover:text-gray-700"
+                                >
+                                    ✕
+                                </button>
+                            </div>
                             {/* 地域フィルター */}
                             <div className="mb-6">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -224,7 +240,7 @@ export default function WantListPage() {
                                     onClick={() => setShowFilterModal(false)}
                                     className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-700"
                                 >
-                                    閉じる
+                                    適用
                                 </button>
                             </div>
                         </div>
