@@ -70,12 +70,8 @@ export const list = query({
 /**
  * フォールバック: 複数の ID 形式でデータを検索し、マージして返す
  * 
- * 対応する ID 形式：
- * 1. 現在の userId (j... 形式)
- * 2. identity.subject 全体 (password|j... または password|k... 形式)
- * 3. identity.subject の各部分 (| で分割した各要素)
- * 
- * これにより、ID 形式の遷移期間中でも全てのデータが表示される
+ * 本番環境では users._id と places.userId が共に k... 形式で保存されているため、
+ * identity.subject から抽出した ID を優先的に使用して検索する。
  */
 async function getPlacesForUserWithFallback(ctx: any, userId: string) {
   const allPlaces = new Map<string, any>();
@@ -84,7 +80,7 @@ async function getPlacesForUserWithFallback(ctx: any, userId: string) {
   // 検索対象のIDを全てリストアップ
   const searchIds = new Set<string>();
   
-  // 1. 現在の userId を追加
+  // 1. 現在の userId (j... または k... 形式) を追加
   if (userId) {
     searchIds.add(userId);
   }
@@ -106,6 +102,7 @@ async function getPlacesForUserWithFallback(ctx: any, userId: string) {
   // 3. 全ての候補IDで検索を実行
   for (const id of searchIds) {
     try {
+      // 本番環境の k... 形式の ID は文字列として保存されているため、インデックス検索を行う
       const places = await ctx.db
         .query("places")
         .withIndex("by_user", (q: any) => q.eq("userId", id))
