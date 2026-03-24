@@ -19,6 +19,13 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const maskEmail = (email: string) => {
+    const [local = "", domain = ""] = email.split("@");
+    if (!local || !domain) return "(invalid-email)";
+    if (local.length <= 2) return `${local[0] ?? "*"}***@${domain}`;
+    return `${local.slice(0, 2)}***@${domain}`;
+  };
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-900 text-white px-4">
       <form
@@ -32,6 +39,11 @@ export default function AdminLoginPage() {
           const email = (formData.get("email") as string).trim();
           const password = (formData.get("password") as string).trim();
 
+          console.log("[auth][admin-login] submit", {
+            email: maskEmail(email),
+            passwordLength: password.length,
+          });
+
           try {
             const response = await fetch("/api/admin/auth", {
               method: "POST",
@@ -39,20 +51,36 @@ export default function AdminLoginPage() {
               body: JSON.stringify({ email, password }),
             });
 
+            console.log("[auth][admin-login] response received", {
+              status: response.status,
+              ok: response.ok,
+            });
+
             if (!response.ok) {
               const errorData = await response.json();
+              console.log("[auth][admin-login] authentication failed", {
+                status: response.status,
+                message: errorData.error || "認証に失敗しました",
+              });
               throw new Error(errorData.error || "認証に失敗しました");
             }
 
             const result = await response.json();
 
             if (result.authenticated) {
+              console.log("[auth][admin-login] authentication succeeded", {
+                email: maskEmail(email),
+              });
               // 認証成功 → セッションを保存してダッシュボードへ遷移
               const sessionToken = btoa(JSON.stringify({ email, timestamp: Date.now() }));
               sessionStorage.setItem("adminSessionToken", sessionToken);
+              console.log("[auth][admin-login] session token stored, redirecting to /admin");
               router.push("/admin");
             }
           } catch (err: unknown) {
+            console.log("[auth][admin-login] submit error", {
+              message: err instanceof Error ? err.message : "unknown-error",
+            });
             setError(toFriendlyError(err));
             setLoading(false);
           }

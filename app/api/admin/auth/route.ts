@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const maskEmail = (email: string) => {
+  const [local = "", domain = ""] = email.split("@");
+  if (!local || !domain) return "(invalid-email)";
+  if (local.length <= 2) return `${local[0] ?? "*"}***@${domain}`;
+  return `${local.slice(0, 2)}***@${domain}`;
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -18,13 +25,28 @@ export async function POST(request: NextRequest) {
     const trimmedEmail = email?.trim() || "";
     const trimmedPassword = password?.trim() || "";
 
+    console.log("[auth][admin-api] request received", {
+      email: maskEmail(trimmedEmail),
+      passwordLength: trimmedPassword.length,
+      hasAdminEmail: Boolean(adminEmail),
+      hasAdminPassword: Boolean(adminPassword),
+    });
+
     // 環境変数と照合
     if (trimmedEmail === adminEmail && trimmedPassword === adminPassword) {
+      console.log("[auth][admin-api] authentication succeeded", {
+        email: maskEmail(trimmedEmail),
+      });
       return NextResponse.json({
         authenticated: true,
         message: "管理者認証成功",
       });
     }
+
+    console.log("[auth][admin-api] authentication failed", {
+      emailMatches: trimmedEmail === adminEmail,
+      passwordMatches: trimmedPassword === adminPassword,
+    });
 
     return NextResponse.json(
       { error: "メールアドレスまたはパスワードが正しくありません。" },

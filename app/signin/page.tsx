@@ -30,6 +30,13 @@ const toFriendlyError = (err: unknown): string => {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const maskEmail = (email: string) => {
+  const [local = "", domain = ""] = email.split("@");
+  if (!local || !domain) return "(invalid-email)";
+  if (local.length <= 2) return `${local[0] ?? "*"}***@${domain}`;
+  return `${local.slice(0, 2)}***@${domain}`;
+};
+
 export default function SignInPage() {
   const { signIn } = useAuthActions();
   const router = useRouter();
@@ -48,16 +55,37 @@ export default function SignInPage() {
     const run = async () => {
       if (!currentUser) return;
 
+      console.log("[auth][signin] currentUser detected", {
+        flow,
+        appProfileId: currentUser.profileId ?? null,
+        authUserId: currentUser.userId,
+        userIdentifier: currentUser.userIdentifier ?? null,
+        email: currentUser.email ? maskEmail(currentUser.email) : null,
+        hasUserIdentifier: Boolean(currentUser.userIdentifier),
+      });
+
       // サインアップ時は userIdentifier を設定してから遷移
       if (flow === "signUp" && pendingUserIdentifier && !profileUpdateDone) {
         const maxAttempts = 5;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           try {
+            console.log("[auth][signin] updateUserProfile attempt", {
+              attempt: attempt + 1,
+              maxAttempts,
+              pendingUserIdentifier,
+            });
             await updateUserProfile({ userIdentifier: pendingUserIdentifier });
             setProfileUpdateDone(true);
+            console.log("[auth][signin] updateUserProfile success", {
+              pendingUserIdentifier,
+            });
             break;
           } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "";
+            console.log("[auth][signin] updateUserProfile failed", {
+              attempt: attempt + 1,
+              message: msg || "unknown-error",
+            });
             if (msg.includes("認証が必要です") && attempt < maxAttempts - 1) {
               await sleep(250);
               continue;
@@ -71,9 +99,19 @@ export default function SignInPage() {
       // プロフィール更新が不要/完了したら遷移
       if (flow === "signUp") {
         if (profileUpdateDone) {
+          console.log("[auth][signin] routing to /mypage", {
+            appProfileId: currentUser.profileId ?? null,
+            authUserId: currentUser.userId,
+            userIdentifier: currentUser.userIdentifier ?? null,
+          });
           router.push("/mypage");
         }
       } else if (flow === "signIn") {
+        console.log("[auth][signin] routing to /place", {
+          appProfileId: currentUser.profileId ?? null,
+          authUserId: currentUser.userId,
+          userIdentifier: currentUser.userIdentifier ?? null,
+        });
         router.push("/place");
       }
     };
@@ -92,13 +130,22 @@ export default function SignInPage() {
 
           const formData = new FormData(e.currentTarget);
           formData.set("flow", flow);
+          const email = ((formData.get("email") || "") as string).trim();
+          const password = ((formData.get("password") || "") as string).trim();
           const desiredUserIdentifier = (formData.get("userIdentifier") || "") as string;
           const normalizedUserIdentifier = desiredUserIdentifier.trim();
 
+          console.log("[auth][signin] submit", {
+            flow,
+            email: maskEmail(email),
+            userIdentifier: normalizedUserIdentifier || null,
+            passwordLength: password.length,
+          });
+
           if (flow === "signUp") {
-            const password = (formData.get("password") || "") as string;
             const confirmPassword = (formData.get("confirmPassword") || "") as string;
             if (password !== confirmPassword) {
+              console.log("[auth][signin] signUp validation failed: password mismatch");
               setError("パスワードが一致しません。もう一度確認してください。");
               setLoading(false);
               return;
@@ -108,7 +155,13 @@ export default function SignInPage() {
           if (flow === "signUp") {
             try {
               await assertUserIdentifierAvailable({ userIdentifier: normalizedUserIdentifier });
+              console.log("[auth][signin] userIdentifier available", {
+                userIdentifier: normalizedUserIdentifier,
+              });
             } catch (err: unknown) {
+              console.log("[auth][signin] userIdentifier check failed", {
+                message: err instanceof Error ? err.message : "unknown-error",
+              });
               setError(toFriendlyError(err));
               setLoading(false);
               return;
@@ -117,10 +170,16 @@ export default function SignInPage() {
 
           try {
             await signIn("password", formData);
+            console.log("[auth][signin] signIn success", { flow, email: maskEmail(email) });
             if (flow === "signUp") {
               setPendingUserIdentifier(normalizedUserIdentifier || null);
             }
           } catch (err: unknown) {
+            console.log("[auth][signin] signIn failed", {
+              flow,
+              email: maskEmail(email),
+              message: err instanceof Error ? err.message : "unknown-error",
+            });
             setError(toFriendlyError(err));
             setLoading(false);
             return;
