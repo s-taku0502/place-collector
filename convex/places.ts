@@ -70,61 +70,48 @@ export const list = query({
 /**
  * フォールバック: 複数の ID 形式でデータを検索し、マージして返す
  * 
- * 本番環境では users._id と places.userId が共に k... 形式で保存されているため、
- * identity.subject から抽出した ID を優先的に使用して検索する。
+ * 本番環境では places.userId に "k...|j..." という連結された形式で保存されているため、
+ * 完全一致検索に加えて、フィルターによる部分一致検索（包含チェック）を行う。
  */
 async function getPlacesForUserWithFallback(ctx: any, userId: string) {
   const allPlaces = new Map<string, any>();
   const identity = await ctx.auth.getUserIdentity();
   
-  // 検索対象のIDを全てリストアップ
+  // 検索対象のID候補を全てリストアップ
   const searchIds = new Set<string>();
-  
-  // 1. 現在の userId (j... または k... 形式) を追加
-  if (userId) {
-    searchIds.add(userId);
-  }
-  
-  // 2. identity.subject とその分割要素を追加
+  if (userId) searchIds.add(userId);
   if (identity?.subject) {
     searchIds.add(identity.subject);
-    
-    // "provider|id" 形式の場合、各部分を分解して追加
-    // 例: "password|k571hd34wbaedmad69..." → ["password", "k571hd34wbaedmad69..."]
-    const parts = identity.subject.split("|");
-    parts.forEach((part: string) => {
-      if (part && part.trim()) {
-        searchIds.add(part);
-      }
+    identity.subject.split("|").forEach((part: string) => {
+      if (part && part.trim()) searchIds.add(part);
     });
   }
   
-  // 3. 全ての候補IDで検索を実行
+  // 1. まずは高速なインデックス検索（完全一致）を実行
   for (const id of searchIds) {
     try {
-      // 本番環境の k... 形式の ID は文字列として保存されているため、インデックス検索を行う
       const places = await ctx.db
         .query("places")
         .withIndex("by_user", (q: any) => q.eq("userId", id))
         .collect();
-      
       places.forEach((p: any) => allPlaces.set(p._id, p));
     } catch (err) {
-      // インデックス検索に失敗した場合、フィルター検索にフォールバック
-      try {
-        const places = await ctx.db
-          .query("places")
-          .filter((q: any) => q.eq(q.field("userId"), id))
-          .collect();
-        
-        places.forEach((p: any) => allPlaces.set(p._id, p));
-      } catch {
-        // スキップ
-      }
+      // インデックス検索に失敗した場合はスキップ（後でフィルター検索でカバー）
     }
   }
   
-  // 全ての ID 形式で見つかったデータをマージして返す
+  // 2. 連結された ID 形式 (例: "k...|j...") に対応するため、フィルター検索を実行
+  // ログインユーザーの ID (j... や k...) が、保存されている userId に含まれているかチェック
+  const allRawPlaces = await ctx.db.query("places").collect();
+  allRawPlaces.forEach((p: any) => {
+    for (const id of searchIds) {
+      if (p.userId === id || p.userId.includes(id)) {
+        allPlaces.set(p._id, p);
+        break;
+      }
+    }
+  });
+  
   return Array.from(allPlaces.values());
 }
 
@@ -134,57 +121,14 @@ export const listByStatus = query({
     const userId = await auth.getUserId(ctx);
     if (!userId) return [];
 
+    const allUserPlaces = await getPlacesForUserWithFallback(ctx, userId);
+    
     if (!args.status) {
-      return await getPlacesForUserWithFallback(ctx, userId);
+      return allUserPlaces;
     }
 
-    // 複数の ID 形式でデータを検索し、マージして返す
-    const allPlaces = new Map<string, any>();
-    const identity = await ctx.auth.getUserIdentity();
-    
-    // 検索対象のIDを全てリストアップ
-    const searchIds = new Set<string>();
-    
-    if (userId) {
-      searchIds.add(userId);
-    }
-    
-    if (identity?.subject) {
-      searchIds.add(identity.subject);
-      
-      const parts = identity.subject.split("|");
-      parts.forEach((part: string) => {
-        if (part && part.trim()) {
-          searchIds.add(part);
-        }
-      });
-    }
-    
-    // 全ての候補IDで検索を実行
-    for (const id of searchIds) {
-      try {
-        const places = await ctx.db
-          .query("places")
-          .withIndex("by_user_status", (q: any) => q.eq("userId", id).eq("status", args.status))
-          .collect();
-        
-        places.forEach((p: any) => allPlaces.set(p._id, p));
-      } catch (err) {
-        // インデックス検索に失敗した場合、フィルター検索にフォールバック
-        try {
-          const places = await ctx.db
-            .query("places")
-            .filter((q: any) => q.eq(q.field("userId"), id).eq(q.field("status"), args.status))
-            .collect();
-          
-          places.forEach((p: any) => allPlaces.set(p._id, p));
-        } catch {
-          // スキップ
-        }
-      }
-    }
-
-    return Array.from(allPlaces.values());
+    // ステータスでフィルタリング
+    return allUserPlaces.filter(p => p.status === args.status);
   },
 });
 
@@ -342,7 +286,7 @@ export const remove = mutation({
     const identity = await ctx.auth.getUserIdentity();
     const userId = await auth.getUserId(ctx);
     
-    // 削除権限のチェックを強化
+    // 削除権限のチェックを強化（包含チェックを含む）
     const searchIds = new Set<string>();
     if (userId) searchIds.add(userId);
     if (identity?.subject) {
@@ -350,7 +294,15 @@ export const remove = mutation({
       identity.subject.split("|").forEach(p => searchIds.add(p));
     }
 
-    if (!searchIds.has(place.userId)) {
+    let isAuthorized = false;
+    for (const sid of searchIds) {
+      if (place.userId === sid || place.userId.includes(sid)) {
+        isAuthorized = true;
+        break;
+      }
+    }
+
+    if (!isAuthorized) {
       throw new Error("Unauthorized");
     }
 
