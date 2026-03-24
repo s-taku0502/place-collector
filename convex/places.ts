@@ -96,7 +96,7 @@ async function getPlacesForUserWithFallback(ctx: any, userId: string) {
     // "provider|id" 形式の場合、各部分を分解して追加
     // 例: "password|k571hd34wbaedmad69..." → ["password", "k571hd34wbaedmad69..."]
     const parts = identity.subject.split("|");
-    parts.forEach(part => {
+    parts.forEach((part: string) => {
       if (part && part.trim()) {
         searchIds.add(part);
       }
@@ -156,7 +156,7 @@ export const listByStatus = query({
       searchIds.add(identity.subject);
       
       const parts = identity.subject.split("|");
-      parts.forEach(part => {
+      parts.forEach((part: string) => {
         if (part && part.trim()) {
           searchIds.add(part);
         }
