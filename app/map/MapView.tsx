@@ -160,17 +160,19 @@ export default function MapView({ title, places }: { title: string; places: any[
         targetMap.setCenter(loc);
         targetMap.setZoom(16);
       }
+      // スクロールを最上部に戻す（地図が見えるように）
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {}
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 overflow-hidden font-sans">
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+    <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
+      <div className="flex flex-col lg:flex-row relative">
         
-        {/* 1. サイドバー（リスト & 検索） */}
-        <aside className="w-full lg:w-[420px] bg-white border-r shadow-xl z-10 order-2 lg:order-1 overflow-y-auto custom-scrollbar h-1/2 lg:h-full">
-          <div className="flex flex-col min-h-full">
-            {/* 訪問ステータスフィルター（最上部） */}
+        {/* 1. サイドバー（リスト & 検索） - ページ全体としてスクロール */}
+        <aside className="w-full lg:w-[420px] bg-white border-r shadow-xl z-10 order-2 lg:order-1">
+          <div className="flex flex-col">
+            {/* 訪問ステータスフィルター（最上部） - ページ全体がスクロールするので sticky はサイドバー内のみ */}
             <div className="sticky top-0 p-4 bg-white/95 backdrop-blur-sm border-b flex items-center justify-center gap-3 shrink-0 z-20">
               <button 
                 onClick={() => setVisitFilter("all")}
@@ -229,8 +231,8 @@ export default function MapView({ title, places }: { title: string; places: any[
               </select>
             </div>
 
-            {/* リスト表示部分 */}
-            <div className="flex-1 bg-gray-50/30">
+            {/* リスト表示部分 - ここがページ全体の一部として伸びる */}
+            <div className="bg-gray-50/30">
               <div className="px-5 py-4 flex justify-between items-center">
                 <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
                   {visitFilter === "all" ? "すべての場所" : visitFilter === "visited" ? "行った場所" : "まだ行ってない場所"}
@@ -241,7 +243,7 @@ export default function MapView({ title, places }: { title: string; places: any[
               </div>
 
               {filteredPlaces.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400 px-8 text-center">
+                <div className="flex flex-col items-center justify-center py-20 text-gray-400 px-8 text-center">
                   <div className="bg-gray-100 p-4 rounded-full mb-4">
                     <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -252,7 +254,7 @@ export default function MapView({ title, places }: { title: string; places: any[
                   <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]); setVisitFilter("all");}} className="mt-4 text-blue-600 text-sm font-bold hover:underline">フィルターをリセット</button>
                 </div>
               ) : (
-                <div className="space-y-3 p-4 pt-0">
+                <div className="space-y-3 p-4 pt-0 pb-10">
                   {filteredPlaces.map((p: any) => (
                     <div 
                       key={p._id}
@@ -289,8 +291,8 @@ export default function MapView({ title, places }: { title: string; places: any[
           </div>
         </aside>
 
-        {/* 2. 地図セクション */}
-        <div className="flex-1 relative order-1 lg:order-2 h-1/2 lg:h-full">
+        {/* 2. 地図セクション - デスクトップでは画面右側に固定 */}
+        <div className="flex-1 order-1 lg:order-2 h-[50vh] lg:h-[calc(100vh-64px)] lg:sticky lg:top-0">
           <gmp-map
             style={{ width: "100%", height: "100%" }}
             center="36.2048,138.2529"
