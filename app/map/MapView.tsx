@@ -4,10 +4,13 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import RegionFilter from "@/components/RegionFilter";
 
 type VisitFilter = "all" | "visited" | "unvisited";
+type TravelMode = "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING";
 
 export default function MapView({ title, places }: { title: string; places: any[] }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<any[]>([]);
+  const directionsRendererRef = useRef<any>(null);
+  
   const [selectedRegionClass, setSelectedRegionClass] = useState<"A"|"B"|"C">("A");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -18,12 +21,16 @@ export default function MapView({ title, places }: { title: string; places: any[
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
 
-  // クライアントサイドでのみ実行されることを保証
+  // 経路探索用の状態
+  const [destination, setDestination] = useState<any>(null);
+  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null);
+  const [travelMode, setTravelMode] = useState<TravelMode>("DRIVING");
+  const [isSearchingRoute, setIsSearchingRoute] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // 1. ジャンル一覧の抽出
   const genres = useMemo(() => {
     if (!places) return [];
     const g = new Set<string>();
@@ -31,7 +38,6 @@ export default function MapView({ title, places }: { title: string; places: any[
     return Array.from(g);
   }, [places]);
 
-  // 2. フィルタリングロジック
   const filteredPlaces = useMemo(() => {
     if (!places) return [];
     return places.filter((p: any) => {
@@ -48,11 +54,10 @@ export default function MapView({ title, places }: { title: string; places: any[
     });
   }, [places, visitFilter, selectedPrefectures, selectedGenre, searchQuery]);
 
-  // 3. 地図の動的注入 & 初期化
+  // 地図の動적注入 & 初期化
   useEffect(() => {
     if (!isClient || !mapContainerRef.current) return;
 
-    // React のレンダリングサイクルから切り離して地図要素を注入
     const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
     mapContainerRef.current.innerHTML = `
       <gmp-map
@@ -74,21 +79,25 @@ export default function MapView({ title, places }: { title: string; places: any[
           const mapEl = mapContainerRef.current?.querySelector("gmp-map") as any;
           
           if (mapEl && window.google?.maps) {
-            // 現在地取得
+            const targetMap = mapEl.innerMap || mapEl;
+            
+            // DirectionsRenderer の初期化
+            directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+              map: targetMap,
+              suppressMarkers: false,
+            });
+
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition(
                 (position) => {
                   const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
                   setCurrentLocation(`${pos.lat},${pos.lng}`);
-                  
-                  const targetMap = mapEl.innerMap || mapEl;
                   if (targetMap && typeof targetMap.setCenter === 'function') {
                     targetMap.setCenter(pos);
                     targetMap.setZoom(13);
                   }
                 },
                 () => {
-                  const targetMap = mapEl.innerMap || mapEl;
                   if (targetMap && typeof targetMap.setCenter === 'function') {
                     targetMap.setCenter({ lat: 36.2048, lng: 138.2529 });
                     targetMap.setZoom(5);
@@ -96,9 +105,24 @@ export default function MapView({ title, places }: { title: string; places: any[
                 }
               );
             }
+
+            // Place Picker のイベントリスナー
+            const picker = mapEl.querySelector("gmpx-place-picker");
+            if (picker) {
+              picker.addEventListener("gmpx-placechange", (e: any) => {
+                const place = e.baseLayer.place;
+                if (place && place.location) {
+                  const loc = { lat: place.location.lat(), lng: place.location.lng() };
+                  setDestination({ 
+                    title: place.displayName || place.name, 
+                    address: place.formattedAddress,
+                    location: loc 
+                  });
+                }
+              });
+            }
           }
           
-          // マーカー更新
           setTimeout(() => updateMarkers(), 500);
         } catch (e) {
           console.error("Map initialization failed:", e);
@@ -110,24 +134,59 @@ export default function MapView({ title, places }: { title: string; places: any[
     return () => clearTimeout(timer);
   }, [isClient]);
 
-  // 現在地マーカーの動的表示（innerHTML を介して制御）
+  // 経路探索の実行
+  useEffect(() => {
+    if (!isClient || !destination || !currentLocation || !window.google?.maps) return;
+
+    const calculateRoute = async () => {
+      setIsSearchingRoute(true);
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      const [lat, lng] = currentLocation.split(",").map(Number);
+      const origin = { lat, lng };
+
+      try {
+        const result = await directionsService.route({
+          origin: origin,
+          destination: destination.location,
+          travelMode: window.google.maps.TravelMode[travelMode],
+        });
+
+        if (directionsRendererRef.current) {
+          directionsRendererRef.current.setDirections(result);
+          const leg = result.routes[0].legs[0];
+          setRouteInfo({
+            distance: leg.distance?.text || "",
+            duration: leg.duration?.text || "",
+          });
+        }
+      } catch (e) {
+        console.error("Directions request failed:", e);
+        setRouteInfo(null);
+      } finally {
+        setIsSearchingRoute(false);
+      }
+    };
+
+    calculateRoute();
+  }, [destination, currentLocation, travelMode, isClient]);
+
+  // 現在地マーカーの動的表示
   useEffect(() => {
     if (!isClient || !mapContainerRef.current) return;
     const mapEl = mapContainerRef.current.querySelector("gmp-map");
     if (!mapEl) return;
 
-    // 既存の現在地マーカーを削除
     const oldMarker = mapEl.querySelector('gmp-advanced-marker[title="現在地"]');
     if (oldMarker) oldMarker.remove();
 
-    // 新しい現在地マーカーを追加
-    if (currentLocation) {
+    if (currentLocation && !destination) { // 経路表示中は現在地マーカーを隠す（DirectionsRendererが描画するため）
       const marker = document.createElement('gmp-advanced-marker');
       marker.setAttribute('position', currentLocation);
       marker.setAttribute('title', '現在地');
       mapEl.appendChild(marker);
     }
-  }, [currentLocation, isClient]);
+  }, [currentLocation, destination, isClient]);
 
   const updateMarkers = async () => {
     if (!isClient || !mapContainerRef.current) return;
@@ -173,9 +232,16 @@ export default function MapView({ title, places }: { title: string; places: any[
           icon: { url: `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png` }
         });
         const infow = new window.google.maps.InfoWindow({
-          content: `<div style="padding:8px;color:#333"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span><br><span style="font-size:11px;font-weight:bold;color:${p.visited ? '#16a34a' : '#f97316'}">${p.visited ? '● 訪問済み' : '○ 未訪問'}</span></div>`
+          content: `<div style="padding:8px;color:#333"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span><br><button id="route-${p._id}" style="margin-top:8px;padding:4px 8px;background:#2563eb;color:white;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer">ここへの経路</button></div>`
         });
-        marker.addListener("click", () => infow.open(targetMap, marker));
+        
+        marker.addListener("click", () => {
+          infow.open(targetMap, marker);
+          setTimeout(() => {
+            const btn = document.getElementById(`route-${p._id}`);
+            if (btn) btn.onclick = () => setDestination({ title: p.title, address: p.address, location: loc });
+          }, 100);
+        });
         markersRef.current.push(marker);
       }
     }
@@ -199,12 +265,13 @@ export default function MapView({ title, places }: { title: string; places: any[
           else reject(status);
         })
       );
-      const loc = res.geometry.location;
+      const loc = { lat: res.geometry.location.lat(), lng: res.geometry.location.lng() };
       const targetMap = mapEl.innerMap || mapEl;
       if (targetMap && typeof targetMap.setCenter === 'function') {
         targetMap.setCenter(loc);
         targetMap.setZoom(16);
       }
+      setDestination({ title: p.title, address: p.address, location: loc });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {}
   };
@@ -213,38 +280,100 @@ export default function MapView({ title, places }: { title: string; places: any[
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 font-sans overflow-x-hidden">
-      {/* 1. 地図セクション - React の管理外で DOM 注入 */}
+      {/* 1. 地図セクション */}
       <div 
         ref={mapContainerRef}
-        className="w-full h-[400px] relative shrink-0 z-10 border-b bg-gray-100"
+        className="w-full h-[450px] relative shrink-0 z-10 border-b bg-gray-100"
         suppressHydrationWarning
       >
         {/* ここに gmp-map が動的に注入されます */}
       </div>
 
-      {/* 2. フィルター & リストセクション - 地図の下に続く */}
-      <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* 経路情報パネル (地図上にオーバーレイ) */}
+      {destination && (
+        <div className="fixed top-[460px] left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 p-4 space-y-3">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">目的地への経路</p>
+                <h3 className="text-lg font-extrabold text-gray-900 line-clamp-1">{destination.title}</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setDestination(null);
+                  setRouteInfo(null);
+                  if (directionsRendererRef.current) directionsRendererRef.current.setDirections({ routes: [] });
+                }}
+                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {(["DRIVING", "WALKING", "TRANSIT", "BICYCLING"] as TravelMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setTravelMode(mode)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${travelMode === mode ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                >
+                  {mode === "DRIVING" && "🚗 車"}
+                  {mode === "WALKING" && "🚶 徒歩"}
+                  {mode === "TRANSIT" && "🚌 公共交通"}
+                  {mode === "BICYCLING" && "🚲 自転車"}
+                </button>
+              ))}
+            </div>
+
+            {routeInfo ? (
+              <div className="flex items-center justify-between bg-blue-50 rounded-xl p-3 border border-blue-100">
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-[10px] text-blue-500 font-bold uppercase">距離</p>
+                    <p className="text-lg font-black text-blue-700">{routeInfo.distance}</p>
+                  </div>
+                  <div className="w-px h-8 bg-blue-200"></div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-blue-500 font-bold uppercase">所要時間</p>
+                    <p className="text-lg font-black text-blue-700">{routeInfo.duration}</p>
+                  </div>
+                </div>
+                <a 
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination.address || destination.title)}&travelmode=${travelMode.toLowerCase()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm"
+                >
+                  ナビ開始
+                </a>
+              </div>
+            ) : isSearchingRoute ? (
+              <div className="flex items-center justify-center py-4 text-sm text-gray-400 animate-pulse">
+                経路を計算中...
+              </div>
+            ) : (
+              <div className="text-center py-2 text-xs text-red-500 font-bold">
+                経路が見つかりませんでした
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2. フィルター & リストセクション */}
+      <div className={`w-full max-w-4xl mx-auto px-4 py-6 space-y-6 ${destination ? 'mt-40' : ''}`}>
         
         {/* 訪問ステータスフィルター */}
         <div className="flex items-center justify-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-          <button 
-            onClick={() => setVisitFilter("all")}
-            className={`flex-1 py-3 rounded-xl font-bold transition-all text-sm ${visitFilter === "all" ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-          >
-            すべて
-          </button>
-          <button 
-            onClick={() => setVisitFilter("visited")}
-            className={`flex-1 py-3 rounded-xl font-bold transition-all text-sm ${visitFilter === "visited" ? 'bg-green-600 text-white shadow-md shadow-green-200' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
-          >
-            行った
-          </button>
-          <button 
-            onClick={() => setVisitFilter("unvisited")}
-            className={`flex-1 py-3 rounded-xl font-bold transition-all text-sm ${visitFilter === "unvisited" ? 'bg-gray-400 text-white shadow-md shadow-gray-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-          >
-            未訪問
-          </button>
+          {(["all", "visited", "unvisited"] as VisitFilter[]).map((f) => (
+            <button 
+              key={f}
+              onClick={() => setVisitFilter(f)}
+              className={`flex-1 py-3 rounded-xl font-bold transition-all text-sm ${visitFilter === f ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+            >
+              {f === "all" ? "すべて" : f === "visited" ? "行った" : "未訪問"}
+            </button>
+          ))}
         </div>
 
         {/* 検索 & ジャンル & 地域 */}
@@ -297,12 +426,6 @@ export default function MapView({ title, places }: { title: string; places: any[
 
           {filteredPlaces.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200 text-gray-400 px-8 text-center">
-              <div className="bg-gray-50 p-5 rounded-full mb-4">
-                <svg className="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
               <p className="text-base font-medium">該当する場所が見つかりません</p>
               <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]); setVisitFilter("all");}} className="mt-4 text-blue-600 font-bold hover:underline">フィルターをリセット</button>
             </div>
@@ -367,6 +490,10 @@ export default function MapView({ title, places }: { title: string; places: any[
       <style jsx global>{`
         @keyframes slide-in-right { from { transform: translateX(100%); } to { transform: translateX(0); } }
         .animate-slide-in-right { animation: slide-in-right 0.3s ease-out; }
+        @keyframes fade-in { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );
