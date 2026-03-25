@@ -232,15 +232,11 @@ export default function MapView({ title, places }: { title: string; places: any[
           icon: { url: `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png` }
         });
         const infow = new window.google.maps.InfoWindow({
-          content: `<div style="padding:8px;color:#333"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span><br><button id="route-${p._id}" style="margin-top:8px;padding:4px 8px;background:#2563eb;color:white;border-radius:4px;font-size:11px;font-weight:bold;cursor:pointer">ここへの経路</button></div>`
+          content: `<div style="padding:8px;color:#333"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span><br><span style="font-size:11px;font-weight:bold;color:${p.visited ? '#16a34a' : '#f97316'}">${p.visited ? '● 訪問済み' : '○ 未訪問'}</span></div>`
         });
         
         marker.addListener("click", () => {
           infow.open(targetMap, marker);
-          setTimeout(() => {
-            const btn = document.getElementById(`route-${p._id}`);
-            if (btn) btn.onclick = () => setDestination({ title: p.title, address: p.address, location: loc });
-          }, 100);
         });
         markersRef.current.push(marker);
       }
