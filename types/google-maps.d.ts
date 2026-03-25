@@ -1,6 +1,4 @@
-import React from "react";
-
-declare global {
+declare module "react" {
     namespace JSX {
         interface IntrinsicElements {
             "gmpx-place-picker": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
@@ -20,3 +18,5 @@ declare global {
         }
     }
 }
+
+export {};
