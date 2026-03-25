@@ -16,9 +16,16 @@ export default function MapView({ title, places }: { title: string; places: any[
   const [visitFilter, setVisitFilter] = useState<VisitFilter>("all");
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // クライアントサイドでのみ実行されることを保証
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // 1. ジャンル一覧の抽出
   const genres = useMemo(() => {
+    if (!places) return [];
     const g = new Set<string>();
     places.forEach(p => { if (p.genre) g.add(p.genre); });
     return Array.from(g);
@@ -43,55 +50,62 @@ export default function MapView({ title, places }: { title: string; places: any[
 
   // 3. 地図初期化 & 現在地取得
   useEffect(() => {
+    if (!isClient) return;
+    
     let retry: NodeJS.Timeout;
     async function init() {
       // @ts-ignore
       if (typeof customElements !== 'undefined') {
-        await customElements.whenDefined("gmp-map");
-        mapReady.current = true;
-        
-        const mapEl = document.querySelector("gmp-map") as any;
-        if (mapEl && window.google?.maps) {
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                const pos = {
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude,
-                };
-                // 文字列形式で保存（gmp-advanced-marker の position 属性用）
-                setCurrentLocation(`${pos.lat},${pos.lng}`);
-                
-                const targetMap = mapEl.innerMap || mapEl;
-                if (targetMap && typeof targetMap.setCenter === 'function') {
-                  targetMap.setCenter(pos);
-                  targetMap.setZoom(13);
+        try {
+          await customElements.whenDefined("gmp-map");
+          mapReady.current = true;
+          
+          const mapEl = document.querySelector("gmp-map") as any;
+          if (mapEl && window.google?.maps) {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                (position) => {
+                  const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                  };
+                  setCurrentLocation(`${pos.lat},${pos.lng}`);
+                  
+                  const targetMap = mapEl.innerMap || mapEl;
+                  if (targetMap && typeof targetMap.setCenter === 'function') {
+                    targetMap.setCenter(pos);
+                    targetMap.setZoom(13);
+                  }
+                },
+                () => {
+                  const targetMap = mapEl.innerMap || mapEl;
+                  if (targetMap && typeof targetMap.setCenter === 'function') {
+                    targetMap.setCenter({ lat: 36.2048, lng: 138.2529 });
+                    targetMap.setZoom(5);
+                  }
                 }
-              },
-              () => {
-                const targetMap = mapEl.innerMap || mapEl;
-                if (targetMap && typeof targetMap.setCenter === 'function') {
-                  targetMap.setCenter({ lat: 36.2048, lng: 138.2529 });
-                  targetMap.setZoom(5);
-                }
-              }
-            );
+              );
+            }
           }
+          
+          setTimeout(() => updateMarkers(), 500);
+        } catch (e) {
+          console.error("Map initialization failed:", e);
         }
-        
-        setTimeout(() => updateMarkers(), 500);
       }
     }
+    
     function tryInit() {
       if (typeof window !== "undefined" && window.google && window.google.maps) init();
       else retry = setTimeout(tryInit, 500);
     }
+    
     tryInit();
     return () => retry && clearTimeout(retry);
-  }, []);
+  }, [isClient]);
 
   const updateMarkers = async () => {
-    if (!mapReady.current) return;
+    if (!mapReady.current || !isClient) return;
     const mapEl = document.querySelector("gmp-map") as any;
     if (!mapEl || !window.google?.maps) return;
 
@@ -143,12 +157,14 @@ export default function MapView({ title, places }: { title: string; places: any[
   };
 
   useEffect(() => {
-    const timer = setTimeout(updateMarkers, 300);
-    return () => clearTimeout(timer);
-  }, [filteredPlaces]);
+    if (isClient) {
+      const timer = setTimeout(updateMarkers, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredPlaces, isClient]);
 
   const handlePlaceClick = async (p: any) => {
-    if (!p.address) return;
+    if (!p.address || !isClient) return;
     const mapEl = document.querySelector("gmp-map") as any;
     try {
       const geocoder = new window.google.maps.Geocoder();
@@ -164,15 +180,18 @@ export default function MapView({ title, places }: { title: string; places: any[
         targetMap.setCenter(loc);
         targetMap.setZoom(16);
       }
-      // 地図が見える位置までスクロール
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {}
   };
+
+  // クライアントサイドでの実行前は何も表示しない（ハイドレーションエラー防止）
+  if (!isClient) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 font-sans overflow-x-hidden">
       {/* 1. 地図セクション - ページ最上部 */}
       <div className="w-full h-[400px] relative shrink-0 z-10 border-b">
+        {/* @ts-ignore */}
         <gmp-map
           style={{ width: "100%", height: "100%" }}
           center="36.2048,138.2529"
@@ -181,11 +200,14 @@ export default function MapView({ title, places }: { title: string; places: any[
         >
           {/* 現在地が取得できた場合のみ赤いピンを表示 */}
           {currentLocation && (
+            /* @ts-ignore */
             <gmp-advanced-marker position={currentLocation} title="現在地"></gmp-advanced-marker>
           )}
+        {/* @ts-ignore */}
         </gmp-map>
         
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
+          {/* @ts-ignore */}
           <gmpx-place-picker style={{ width: "100%", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}></gmpx-place-picker>
         </div>
       </div>
