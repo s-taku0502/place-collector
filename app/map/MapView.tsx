@@ -3,6 +3,8 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import RegionFilter from "@/components/RegionFilter";
 
+type VisitFilter = "all" | "visited" | "unvisited";
+
 export default function MapView({ title, places }: { title: string; places: any[] }) {
   const mapReady = useRef(false);
   const markersRef = useRef<any[]>([]);
@@ -11,6 +13,7 @@ export default function MapView({ title, places }: { title: string; places: any[
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState<string>("all");
+  const [visitFilter, setVisitFilter] = useState<VisitFilter>("all");
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
   // 1. ジャンル一覧の抽出
@@ -20,25 +23,44 @@ export default function MapView({ title, places }: { title: string; places: any[
     return Array.from(g);
   }, [places]);
 
-  // 2. フィルタリングロジック
+  // 2. フィルタリングロジック (訪問ステータス + 都道府県 + ジャンル + 検索)
   const filteredPlaces = useMemo(() => {
     if (!places) return [];
     return places.filter((p: any) => {
+      // 訪問ステータスフィルター
+      const matchVisit = 
+        visitFilter === "all" || 
+        (visitFilter === "visited" && p.visited) || 
+        (visitFilter === "unvisited" && !p.visited);
+      
+      // 都道府県フィルター
       const matchPref = selectedPrefectures.length === 0 || (p.prefecture && selectedPrefectures.includes(p.prefecture));
+      
+      // ジャンルフィルター
       const matchGenre = selectedGenre === "all" || p.genre === selectedGenre;
+      
+      // 検索ワードフィルター
       const matchSearch = searchQuery === "" || 
         p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
         p.address?.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchPref && matchGenre && matchSearch;
+      
+      return matchVisit && matchPref && matchGenre && matchSearch;
     });
-  }, [places, selectedPrefectures, selectedGenre, searchQuery]);
+  }, [places, visitFilter, selectedPrefectures, selectedGenre, searchQuery]);
 
-  // 3. 地図初期化とマーカー管理
+  // 3. 地図初期化
   useEffect(() => {
     let retry: NodeJS.Timeout;
     async function init() {
-      await customElements.whenDefined("gmp-map");
-      mapReady.current = true;
+      // @ts-ignore
+      if (typeof customElements !== 'undefined') {
+        await customElements.whenDefined("gmp-map");
+        mapReady.current = true;
+        // 初期化後にマーカー更新をトリガーするために少し待つ
+        setTimeout(() => {
+          updateMarkers();
+        }, 500);
+      }
     }
     
     function tryInit() {
@@ -52,63 +74,67 @@ export default function MapView({ title, places }: { title: string; places: any[
     return () => retry && clearTimeout(retry);
   }, []);
 
-  useEffect(() => {
+  // マーカー更新関数を外部に定義して再利用しやすくする
+  const updateMarkers = async () => {
     if (!mapReady.current) return;
     const mapEl = document.querySelector("gmp-map") as any;
     if (!mapEl || !window.google?.maps) return;
 
-    const updateMarkers = async () => {
-      // 古いマーカーを削除
-      markersRef.current.forEach(m => m && m.setMap && m.setMap(null));
-      markersRef.current = [];
+    // 古いマーカーを削除
+    markersRef.current.forEach(m => m && m.setMap && m.setMap(null));
+    markersRef.current = [];
 
-      const geocoder = new window.google.maps.Geocoder();
-      
-      const colorForGenre = (genre?: string) => {
-        if (!genre) return "red";
-        const key = genre.toLowerCase();
-        if (key.includes("food") || key.includes("飲食") || key.includes("グルメ")) return "orange";
-        if (key.includes("cafe") || key.includes("カフェ")) return "purple";
-        if (key.includes("park") || key.includes("公園")) return "green";
-        if (key.includes("shop") || key.includes("ショップ")) return "blue";
-        if (key.includes("museum") || key.includes("美術館") || key.includes("博物")) return "yellow";
-        return "red";
-      };
-
-      for (const p of filteredPlaces) {
-        let loc = p.location ? { lat: Number(p.location.lat), lng: Number(p.location.lng) } : null;
-        
-        if (!loc && p.address) {
-          try {
-            const res = await new Promise<any>((resolve, reject) =>
-              geocoder.geocode({ address: p.address }, (results: any, status: any) => {
-                if (status === "OK" && results?.[0]) resolve(results[0]);
-                else reject(status);
-              })
-            );
-            loc = { lat: res.geometry.location.lat(), lng: res.geometry.location.lng() };
-          } catch (e) { continue; }
-        }
-
-        if (loc && mapEl.innerMap) {
-          const color = colorForGenre(p.genre);
-          const marker = new window.google.maps.Marker({
-            position: loc,
-            map: mapEl.innerMap,
-            title: p.title,
-            icon: { url: `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png` }
-          });
-
-          const infow = new window.google.maps.InfoWindow({
-            content: `<div style="padding:8px"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span></div>`
-          });
-
-          marker.addListener("click", () => infow.open(mapEl.innerMap, marker));
-          markersRef.current.push(marker);
-        }
-      }
+    const geocoder = new window.google.maps.Geocoder();
+    
+    const colorForGenre = (p: any) => {
+      // 訪問済みかどうかでベースの色を変える案もあるが、まずはジャンル優先
+      if (!p.genre) return p.visited ? "green" : "red";
+      const key = p.genre.toLowerCase();
+      if (key.includes("food") || key.includes("飲食") || key.includes("グルメ")) return "orange";
+      if (key.includes("cafe") || key.includes("カフェ")) return "purple";
+      if (key.includes("park") || key.includes("公園")) return "green";
+      if (key.includes("shop") || key.includes("ショップ")) return "blue";
+      if (key.includes("museum") || key.includes("美術館") || key.includes("博物")) return "yellow";
+      return p.visited ? "green" : "red";
     };
 
+    for (const p of filteredPlaces) {
+      let loc = p.location ? { lat: Number(p.location.lat), lng: Number(p.location.lng) } : null;
+      
+      if (!loc && p.address) {
+        try {
+          const res = await new Promise<any>((resolve, reject) =>
+            geocoder.geocode({ address: p.address }, (results: any, status: any) => {
+              if (status === "OK" && results?.[0]) resolve(results[0]);
+              else reject(status);
+            })
+          );
+          loc = { lat: res.geometry.location.lat(), lng: res.geometry.location.lng() };
+        } catch (e) { continue; }
+      }
+
+      if (loc && (mapEl.innerMap || mapEl)) {
+        const targetMap = mapEl.innerMap || mapEl;
+        const color = colorForGenre(p);
+        const marker = new window.google.maps.Marker({
+          position: loc,
+          map: targetMap,
+          title: p.title,
+          icon: { url: `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png` }
+        });
+
+        const infow = new window.google.maps.InfoWindow({
+          content: `<div style="padding:8px;color:#333"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span><br><span style="font-size:11px;font-weight:bold;color:${p.visited ? '#16a34a' : '#f97316'}">${p.visited ? '● 訪問済み' : '○ 未訪問'}</span></div>`
+        });
+
+        marker.addListener("click", () => infow.open(targetMap, marker));
+        markersRef.current.push(marker);
+      }
+    }
+  };
+
+  // フィルタリング結果が変わるたびにマーカーを更新
+  useEffect(() => {
     const timer = setTimeout(updateMarkers, 300);
     return () => clearTimeout(timer);
   }, [filteredPlaces]);
@@ -128,9 +154,13 @@ export default function MapView({ title, places }: { title: string; places: any[
       );
       
       const loc = res.geometry.location;
-      if (mapEl.innerMap) {
-        mapEl.innerMap.setCenter(loc);
-        mapEl.innerMap.setZoom(16);
+      const targetMap = mapEl.innerMap || mapEl;
+      if (targetMap && typeof targetMap.setCenter === 'function') {
+        targetMap.setCenter(loc);
+        targetMap.setZoom(16);
+      } else if (mapEl) {
+        mapEl.center = `${loc.lat()},${loc.lng()}`;
+        mapEl.zoom = 16;
       }
       if (markerEl) markerEl.position = { lat: loc.lat(), lng: loc.lng() };
     } catch (e) {
@@ -144,7 +174,29 @@ export default function MapView({ title, places }: { title: string; places: any[
       <div className="bg-white border-b px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm z-10">
         <div>
           <h1 className="text-xl font-bold text-gray-800">{title}</h1>
-          <p className="text-sm text-gray-500">{filteredPlaces.length} 件のスポットが見つかりました</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-sm text-gray-500">{filteredPlaces.length} 件表示中</span>
+            <div className="flex bg-gray-100 p-1 rounded-lg">
+              <button 
+                onClick={() => setVisitFilter("all")}
+                className={`px-3 py-1 text-xs rounded-md transition ${visitFilter === "all" ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                すべて
+              </button>
+              <button 
+                onClick={() => setVisitFilter("visited")}
+                className={`px-3 py-1 text-xs rounded-md transition ${visitFilter === "visited" ? 'bg-white shadow-sm text-green-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                行った
+              </button>
+              <button 
+                onClick={() => setVisitFilter("unvisited")}
+                className={`px-3 py-1 text-xs rounded-md transition ${visitFilter === "unvisited" ? 'bg-white shadow-sm text-orange-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                未訪問
+              </button>
+            </div>
+          </div>
         </div>
         
         <div className="flex items-center gap-3">
@@ -167,7 +219,7 @@ export default function MapView({ title, places }: { title: string; places: any[
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
             </svg>
-            フィルター
+            地域フィルター
           </button>
         </div>
       </div>
@@ -211,7 +263,7 @@ export default function MapView({ title, places }: { title: string; places: any[
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <p>該当する場所が見つかりません</p>
-                <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]);}} className="mt-4 text-blue-500 text-sm hover:underline">フィルターをリセット</button>
+                <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]); setVisitFilter("all");}} className="mt-4 text-blue-500 text-sm hover:underline">フィルターをリセット</button>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
