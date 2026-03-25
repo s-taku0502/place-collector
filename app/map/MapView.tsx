@@ -9,97 +9,38 @@ export default function MapView({ title, places }: { title: string; places: any[
   const [selectedRegionClass, setSelectedRegionClass] = useState<"A"|"B"|"C">("A");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState<string>("all");
+  const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && showFilterPanel) setShowFilterPanel(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [showFilterPanel]);
+  // 1. ジャンル一覧の抽出
+  const genres = useMemo(() => {
+    const g = new Set<string>();
+    places.forEach(p => { if (p.genre) g.add(p.genre); });
+    return Array.from(g);
+  }, [places]);
 
+  // 2. フィルタリングロジック
   const filteredPlaces = useMemo(() => {
     if (!places) return [];
-    if (selectedPrefectures.length === 0) return places;
-    return places.filter((p: any) => p.prefecture && selectedPrefectures.includes(p.prefecture));
-  }, [places, selectedPrefectures]);
+    return places.filter((p: any) => {
+      const matchPref = selectedPrefectures.length === 0 || (p.prefecture && selectedPrefectures.includes(p.prefecture));
+      const matchGenre = selectedGenre === "all" || p.genre === selectedGenre;
+      const matchSearch = searchQuery === "" || 
+        p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        p.address?.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchPref && matchGenre && matchSearch;
+    });
+  }, [places, selectedPrefectures, selectedGenre, searchQuery]);
+
+  // 3. 地図初期化とマーカー管理
   useEffect(() => {
     let retry: NodeJS.Timeout;
     async function init() {
       await customElements.whenDefined("gmp-map");
       mapReady.current = true;
     }
-    async function createMarkers() {
-      if (typeof window === "undefined" || !window.google || !window.google.maps) return;
-      const geocoder = new window.google.maps.Geocoder();
-      const mapEl = document.querySelector("gmp-map") as any;
-      // clear old markers
-      markersRef.current.forEach((m) => m && m.setMap && m.setMap(null));
-      markersRef.current = [];
-
-      if (!mapEl) return;
-
-      // helper: map category/genre to marker color
-      const colorForGenre = (genre?: string) => {
-        if (!genre) return "";
-        const key = (genre || "").toLowerCase();
-        if (key.includes("food") || key.includes("飲食") || key.includes("グルメ")) return "orange";
-        if (key.includes("cafe") || key.includes("カフェ")) return "purple";
-        if (key.includes("park") || key.includes("公園")) return "green";
-        if (key.includes("shop") || key.includes("ショップ")) return "blue";
-        if (key.includes("museum") || key.includes("美術館") || key.includes("博物")) return "yellow";
-        return "";
-      };
-
-      for (const p of filteredPlaces || []) {
-        try {
-          let loc: any = null;
-          // if stored lat/lng available
-          if (p.location && typeof p.location === "object" && (p.location.lat || p.location.lng)) {
-            loc = { lat: Number(p.location.lat), lng: Number(p.location.lng) };
-          } else if (p.address) {
-            // geocode
-            // eslint-disable-next-line no-await-in-loop
-            const res = await new Promise<any>((resolve, reject) =>
-              geocoder.geocode({ address: p.address }, (results: any, status: any) => {
-                if (status === "OK" && results && results[0]) resolve(results[0]);
-                else reject(status);
-              })
-            ).catch(() => null);
-            if (res && res.geometry && res.geometry.location) {
-              const g = res.geometry.location;
-              loc = { lat: g.lat(), lng: g.lng() };
-            }
-          }
-
-          if (!loc) continue;
-
-          // create native marker when innerMap available
-          if (mapEl && mapEl.innerMap) {
-            const color = colorForGenre(p.genre);
-            const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
-            const marker = new window.google.maps.Marker({
-              position: loc,
-              map: mapEl.innerMap,
-              title: p.title || "",
-              icon: { url: iconUrl },
-            });
-            const infow = new window.google.maps.InfoWindow({ content: `<strong>${p.title || ""}</strong><br>${p.address || ""}` });
-            marker.addListener("click", () => infow.open(mapEl.innerMap, marker));
-            markersRef.current.push(marker);
-          } else if (mapEl) {
-            // fallback: set gmp-advanced-marker if available
-            const adv = document.createElement("gmp-advanced-marker");
-            adv.setAttribute("position", `${loc.lat},${loc.lng}`);
-            adv.setAttribute("data-title", p.title || "");
-            mapEl.appendChild(adv);
-            markersRef.current.push(adv);
-          }
-        } catch (e) {
-          // ignore individual failures
-        }
-      }
-    }
+    
     function tryInit() {
       if (typeof window !== "undefined" && window.google && window.google.maps) {
         init();
@@ -108,189 +49,270 @@ export default function MapView({ title, places }: { title: string; places: any[
       }
     }
     tryInit();
-    return () => {
-      retry && clearTimeout(retry);
-      // cleanup markers
-      markersRef.current.forEach((m) => m && m.setMap && m.setMap(null));
-      markersRef.current = [];
-    };
-  }, [filteredPlaces]);
+    return () => retry && clearTimeout(retry);
+  }, []);
 
-  // when places change, refresh markers
   useEffect(() => {
     if (!mapReady.current) return;
-    const el = document.querySelector("gmp-map");
-    if (!el) return;
-    // create markers after a tiny delay to ensure innerMap ready
-    const t = setTimeout(() => {
-      (async () => {
-        // reuse createMarkers logic by calling the inner function defined above is not possible here,
-        // so duplicate minimal logic: trigger a geocode/marker creation via a click on map to reuse existing init flow
-        // Simpler: directly create markers using global google
-        if (typeof window === "undefined" || !window.google || !window.google.maps) return;
-        const geocoder = new window.google.maps.Geocoder();
-        const mapEl = document.querySelector("gmp-map") as any;
-        markersRef.current.forEach((m) => m && m.setMap && m.setMap(null));
-        markersRef.current = [];
-        const colorForGenre = (genre?: string) => {
-          if (!genre) return "red";
-          const key = (genre || "").toLowerCase();
-          if (key.includes("food") || key.includes("飲食") || key.includes("グルメ")) return "orange";
-          if (key.includes("cafe") || key.includes("カフェ")) return "purple";
-          if (key.includes("park") || key.includes("公園")) return "green";
-          if (key.includes("shop") || key.includes("ショップ")) return "blue";
-          if (key.includes("museum") || key.includes("美術館") || key.includes("博物")) return "yellow";
-          return "red";
-        };
-        for (const p of places || []) {
+    const mapEl = document.querySelector("gmp-map") as any;
+    if (!mapEl || !window.google?.maps) return;
+
+    const updateMarkers = async () => {
+      // 古いマーカーを削除
+      markersRef.current.forEach(m => m && m.setMap && m.setMap(null));
+      markersRef.current = [];
+
+      const geocoder = new window.google.maps.Geocoder();
+      
+      const colorForGenre = (genre?: string) => {
+        if (!genre) return "red";
+        const key = genre.toLowerCase();
+        if (key.includes("food") || key.includes("飲食") || key.includes("グルメ")) return "orange";
+        if (key.includes("cafe") || key.includes("カフェ")) return "purple";
+        if (key.includes("park") || key.includes("公園")) return "green";
+        if (key.includes("shop") || key.includes("ショップ")) return "blue";
+        if (key.includes("museum") || key.includes("美術館") || key.includes("博物")) return "yellow";
+        return "red";
+      };
+
+      for (const p of filteredPlaces) {
+        let loc = p.location ? { lat: Number(p.location.lat), lng: Number(p.location.lng) } : null;
+        
+        if (!loc && p.address) {
           try {
-            let loc: any = null;
-            if (p.location && typeof p.location === "object" && (p.location.lat || p.location.lng)) {
-              loc = { lat: Number(p.location.lat), lng: Number(p.location.lng) };
-            } else if (p.address) {
-              // eslint-disable-next-line no-await-in-loop
-              const res = await new Promise<any>((resolve, reject) =>
-                geocoder.geocode({ address: p.address }, (results: any, status: any) => {
-                  if (status === "OK" && results && results[0]) resolve(results[0]);
-                  else reject(status);
-                })
-              ).catch(() => null);
-              if (res && res.geometry && res.geometry.location) {
-                const g = res.geometry.location;
-                loc = { lat: g.lat(), lng: g.lng() };
-              }
-            }
-            if (!loc) continue;
-            if (mapEl && mapEl.innerMap) {
-              const color = colorForGenre(p.genre);
-              const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
-              const marker = new window.google.maps.Marker({
-                position: loc,
-                map: mapEl.innerMap,
-                title: p.title || "",
-                icon: { url: iconUrl },
-              });
-              const infow = new window.google.maps.InfoWindow({ content: `<strong>${p.title || ""}</strong><br>${p.address || ""}` });
-              marker.addListener("click", () => infow.open(mapEl.innerMap, marker));
-              markersRef.current.push(marker);
-            } else if (mapEl) {
-              const adv = document.createElement("gmp-advanced-marker");
-              adv.setAttribute("position", `${loc.lat},${loc.lng}`);
-              adv.setAttribute("data-title", p.title || "");
-              mapEl.appendChild(adv);
-              markersRef.current.push(adv);
-            }
-          } catch (e) {
-            // ignore
-          }
+            const res = await new Promise<any>((resolve, reject) =>
+              geocoder.geocode({ address: p.address }, (results: any, status: any) => {
+                if (status === "OK" && results?.[0]) resolve(results[0]);
+                else reject(status);
+              })
+            );
+            loc = { lat: res.geometry.location.lat(), lng: res.geometry.location.lng() };
+          } catch (e) { continue; }
         }
-      })();
-    }, 300);
-    return () => clearTimeout(t);
+
+        if (loc && mapEl.innerMap) {
+          const color = colorForGenre(p.genre);
+          const marker = new window.google.maps.Marker({
+            position: loc,
+            map: mapEl.innerMap,
+            title: p.title,
+            icon: { url: `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png` }
+          });
+
+          const infow = new window.google.maps.InfoWindow({
+            content: `<div style="padding:8px"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span></div>`
+          });
+
+          marker.addListener("click", () => infow.open(mapEl.innerMap, marker));
+          markersRef.current.push(marker);
+        }
+      }
+    };
+
+    const timer = setTimeout(updateMarkers, 300);
+    return () => clearTimeout(timer);
   }, [filteredPlaces]);
 
-  return (
-    <main>
-      <h1 className="text-2xl font-bold mb-4">{title}</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div style={{ width: "100%", height: "70vh", position: "relative" }}>
-            <gmp-map
-              style={{ width: "100%", height: "100%" }}
-              center="35.681236,139.767125"
-              zoom="13"
-              map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
-            >
-              {/* selected marker */}
-              <gmp-advanced-marker id="map-selected-marker" position="35.681236,139.767125"></gmp-advanced-marker>
-            </gmp-map>
+  const handlePlaceClick = async (p: any) => {
+    if (!p.address) return alert("住所が設定されていません");
+    const mapEl = document.querySelector("gmp-map") as any;
+    const markerEl = document.querySelector("#map-selected-marker") as any;
+    
+    try {
+      const geocoder = new window.google.maps.Geocoder();
+      const res = await new Promise<any>((resolve, reject) =>
+        geocoder.geocode({ address: p.address }, (results: any, status: any) => {
+          if (status === "OK" && results?.[0]) resolve(results[0]);
+          else reject(status);
+        })
+      );
+      
+      const loc = res.geometry.location;
+      if (mapEl.innerMap) {
+        mapEl.innerMap.setCenter(loc);
+        mapEl.innerMap.setZoom(16);
+      }
+      if (markerEl) markerEl.position = { lat: loc.lat(), lng: loc.lng() };
+    } catch (e) {
+      alert("位置を特定できませんでした");
+    }
+  };
 
-            <div style={{ position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 1000 }}>
-              <gmpx-place-picker style={{ width: 320 }}></gmpx-place-picker>
-            </div>
+  return (
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 overflow-hidden">
+      {/* ヘッダーセクション */}
+      <div className="bg-white border-b px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm z-10">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">{title}</h1>
+          <p className="text-sm text-gray-500">{filteredPlaces.length} 件のスポットが見つかりました</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 md:w-64">
+            <input
+              type="text"
+              placeholder="場所名や住所で検索..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <svg className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <button 
+            onClick={() => setShowFilterPanel(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            </svg>
+            フィルター
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* 地図セクション */}
+        <div className="flex-1 relative">
+          <gmp-map
+            style={{ width: "100%", height: "100%" }}
+            center="35.681236,139.767125"
+            zoom="13"
+            map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
+          >
+            <gmp-advanced-marker id="map-selected-marker" position="35.681236,139.767125"></gmp-advanced-marker>
+          </gmp-map>
+          
+          {/* マップ上のフローティング検索バー */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
+            <gmpx-place-picker style={{ width: "100%", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}></gmpx-place-picker>
           </div>
         </div>
 
-        <aside className="space-y-3">
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h2 className="font-semibold">フィルター</h2>
-            <div className="mt-3">
-              <RegionFilter
-                regionClass={selectedRegionClass}
-                setRegionClass={setSelectedRegionClass}
-                selectedPrefectures={selectedPrefectures}
-                setSelectedPrefectures={setSelectedPrefectures}
-              />
-            </div>
+        {/* サイドバーセクション */}
+        <aside className="w-full lg:w-96 bg-white border-l flex flex-col shadow-inner">
+          <div className="p-4 border-b bg-gray-50/50">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">ジャンルで絞り込む</label>
+            <select 
+              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+            >
+              <option value="all">すべてのジャンル</option>
+              {genres.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
           </div>
 
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h2 className="font-semibold">場所一覧 ({filteredPlaces.length})</h2>
-            <ul className="mt-3 space-y-2 max-h-[60vh] overflow-y-auto">
-              {filteredPlaces.map((p: any) => (
-                <li key={p._id}>
-                  <button
-                    onClick={async () => {
-                      if (!p.address) return alert("住所が設定されていません");
-                      if (!window.google || !window.google.maps) return alert("地図が読み込まれていません");
-                      const geocoder = new window.google.maps.Geocoder();
-                      try {
-                        const res = await new Promise<any>((resolve, reject) =>
-                          geocoder.geocode({ address: p.address }, (results: any, status: any) => {
-                            if (status === "OK" && results && results[0]) resolve(results[0]);
-                            else reject(status);
-                          })
-                        );
-                        const loc = res.geometry.location;
-                        const map = document.querySelector("gmp-map") as any;
-                        const marker = document.querySelector("#map-selected-marker") as any;
-                        if (map && map.innerMap) {
-                          map.innerMap.setCenter(loc);
-                          map.innerMap.setZoom(16);
-                        } else if (map) {
-                          map.center = `${loc.lat()},${loc.lng()}`;
-                        }
-                        if (marker) marker.position = { lat: loc.lat(), lng: loc.lng() };
-                        // show info window
-                        const infow = new window.google.maps.InfoWindow({ content: `<strong>${p.title}</strong><br>${p.address ?? ""}` });
-                        if (marker && map && map.innerMap) infow.open(map.innerMap, marker);
-                      } catch (err) {
-                        alert("位置を特定できませんでした");
-                      }
-                    }}
-                    className="w-full text-left"
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {filteredPlaces.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-400 px-8 text-center">
+                <svg className="h-12 w-12 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p>該当する場所が見つかりません</p>
+                <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]);}} className="mt-4 text-blue-500 text-sm hover:underline">フィルターをリセット</button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredPlaces.map((p: any) => (
+                  <div 
+                    key={p._id}
+                    onMouseEnter={() => setHoveredPlaceId(p._id)}
+                    onMouseLeave={() => setHoveredPlaceId(null)}
+                    onClick={() => handlePlaceClick(p)}
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:bg-blue-50/50 ${hoveredPlaceId === p._id ? 'bg-blue-50 border-l-4 border-blue-500' : 'border-l-4 border-transparent'}`}
                   >
-                    <div className="p-2 rounded hover:bg-gray-100">
-                      <div className="font-medium">{p.title}</div>
-                      <div className="text-sm text-gray-500">{p.address ?? "住所なし"}</div>
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-bold text-gray-900 leading-tight">{p.title}</h3>
+                      {p.genre && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                          {p.genre}
+                        </span>
+                      )}
                     </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-2">{p.address || "住所なし"}</p>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[10px] font-bold ${p.visited ? 'text-green-600' : 'text-orange-500'}`}>
+                        {p.visited ? '● 訪問済み' : '○ 未訪問'}
+                      </span>
+                      {p.prefecture && (
+                        <span className="text-[10px] text-gray-400">
+                          📍 {p.prefecture}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </aside>
       </div>
 
-      {/* フローティング絞り込みボタン */}
-      <button onClick={() => setShowFilterPanel(true)} className="fixed bottom-8 right-8 z-40 inline-flex items-center gap-2 rounded-full bg-white p-3 shadow-lg hover:shadow-2xl transition">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
-        </svg>
-      </button>
-
+      {/* フィルタードロワー */}
       {showFilterPanel && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black bg-opacity-30" onClick={() => setShowFilterPanel(false)} />
-          <aside className="ml-auto w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">絞り込み</h2>
-              <button onClick={() => setShowFilterPanel(false)} className="text-gray-600 hover:text-gray-900">✕</button>
+        <div className="fixed inset-0 z-[100] flex justify-end">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={() => setShowFilterPanel(false)} />
+          <aside className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-slide-in-right">
+            <div className="p-6 border-b flex items-center justify-between bg-gray-50">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">詳細フィルター</h2>
+                <p className="text-xs text-gray-500 mt-1">地域や都道府県で絞り込みます</p>
+              </div>
+              <button 
+                onClick={() => setShowFilterPanel(false)}
+                className="p-2 hover:bg-gray-200 rounded-full transition"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <RegionFilter regionClass={selectedRegionClass} setRegionClass={setSelectedRegionClass} selectedPrefectures={selectedPrefectures} setSelectedPrefectures={setSelectedPrefectures} />
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              <RegionFilter 
+                regionClass={selectedRegionClass} 
+                setRegionClass={setSelectedRegionClass} 
+                selectedPrefectures={selectedPrefectures} 
+                setSelectedPrefectures={setSelectedPrefectures} 
+              />
+            </div>
+
+            <div className="p-6 border-t bg-gray-50">
+              <button 
+                onClick={() => setShowFilterPanel(false)}
+                className="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition shadow-lg"
+              >
+                結果を表示する
+              </button>
+            </div>
           </aside>
         </div>
       )}
-    </main>
+
+      <style jsx global>{`
+        @keyframes slide-in-right {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+          animation: slide-in-right 0.3s ease-out;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #ddd;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #ccc;
+        }
+      `}</style>
+    </div>
   );
 }
