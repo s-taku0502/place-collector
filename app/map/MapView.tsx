@@ -140,27 +140,12 @@ export default function MapView({ title, places }: { title: string; places: any[
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 overflow-hidden font-sans">
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* 1. 地図セクション */}
-        <div className="flex-1 relative order-2 lg:order-1">
-          <gmp-map
-            style={{ width: "100%", height: "100%" }}
-            center="35.681236,139.767125"
-            zoom="13"
-            map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
-          >
-            <gmp-advanced-marker id="map-selected-marker" position="35.681236,139.767125"></gmp-advanced-marker>
-          </gmp-map>
-          
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
-            <gmpx-place-picker style={{ width: "100%", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}></gmpx-place-picker>
-          </div>
-        </div>
-
-        {/* 2. サイドバー（リスト & 検索） */}
-        <aside className="w-full lg:w-[420px] bg-white border-r flex flex-col shadow-xl z-10 order-1 lg:order-2">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        
+        {/* 1. サイドバー（リスト & 検索） - デスクトップでは左、モバイルでは下 */}
+        <aside className="w-full lg:w-[420px] bg-white border-r flex flex-col shadow-xl z-10 order-2 lg:order-1 h-1/2 lg:h-full">
           {/* 訪問ステータスフィルター（最上部） */}
-          <div className="p-4 bg-white border-b flex items-center justify-center gap-3">
+          <div className="p-4 bg-white border-b flex items-center justify-center gap-3 shrink-0">
             <button 
               onClick={() => setVisitFilter("all")}
               className={`flex-1 py-2.5 rounded-xl font-bold transition-all shadow-sm text-sm ${visitFilter === "all" ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
@@ -182,7 +167,7 @@ export default function MapView({ title, places }: { title: string; places: any[
           </div>
 
           {/* 検索 & ジャンル & 地域 */}
-          <div className="p-4 space-y-3 bg-white border-b">
+          <div className="p-4 space-y-3 bg-white border-b shrink-0">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <input
@@ -230,7 +215,7 @@ export default function MapView({ title, places }: { title: string; places: any[
             </div>
 
             {filteredPlaces.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-gray-400 px-8 text-center">
+              <div className="flex flex-col items-center justify-center py-10 text-gray-400 px-8 text-center">
                 <div className="bg-gray-100 p-4 rounded-full mb-4">
                   <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -276,6 +261,22 @@ export default function MapView({ title, places }: { title: string; places: any[
             )}
           </div>
         </aside>
+
+        {/* 2. 地図セクション - デスクトップでは右、モバイルでは上 */}
+        <div className="flex-1 relative order-1 lg:order-2 h-1/2 lg:h-full">
+          <gmp-map
+            style={{ width: "100%", height: "100%" }}
+            center="35.681236,139.767125"
+            zoom="13"
+            map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
+          >
+            <gmp-advanced-marker id="map-selected-marker" position="35.681236,139.767125"></gmp-advanced-marker>
+          </gmp-map>
+          
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
+            <gmpx-place-picker style={{ width: "100%", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}></gmpx-place-picker>
+          </div>
+        </div>
       </div>
 
       {/* フィルタードロワー */}
