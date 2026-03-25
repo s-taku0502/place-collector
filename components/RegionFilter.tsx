@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export type RegionClass = "A";
+export type RegionClass = "A" | "B" | "C";
 
 export function getRegionGroups() {
     const A: Record<string, string[]> = {
@@ -17,7 +17,8 @@ export function getRegionGroups() {
         "九州": ["福岡県", "佐賀県", "長崎県", "大分県", "熊本県", "宮崎県", "鹿児島県"],
         "沖縄": ["沖縄県"],
     };
-    return { A } as const;
+    // For now reuse the same grouping for B and C to keep compatibility
+    return { A, B: A, C: A } as const;
 }
 
 type Props = {
