@@ -5,7 +5,6 @@ export default function PlaceMapPage() {
     useEffect(() => {
         let retryTimeout: NodeJS.Timeout;
         async function init() {
-            // @ts-ignore
             await customElements.whenDefined("gmp-map");
             
             const map = document.querySelector("gmp-map") as any;
@@ -14,7 +13,6 @@ export default function PlaceMapPage() {
             
             if (!map || !placePicker) return;
 
-            // @ts-ignore
             const infowindow = new window.google.maps.InfoWindow();
 
             if (map.innerMap) {
@@ -51,7 +49,6 @@ export default function PlaceMapPage() {
         }
 
         function tryInit() {
-            // @ts-ignore
             if (typeof window !== "undefined" && window.google && window.google.maps) {
                 init();
             } else {
@@ -66,16 +63,13 @@ export default function PlaceMapPage() {
 
     return (
         <div style={{ width: "100%", height: "80vh", position: "relative" }}>
-            {/* @ts-ignore */}
             <gmp-map
                 style={{ width: "100%", height: "100%" }}
                 center="35.681236,139.767125"
                 zoom="13"
                 map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
             >
-                {/* @ts-ignore */}
                 <gmp-advanced-marker position="35.681236,139.767125"></gmp-advanced-marker>
-            {/* @ts-ignore */}
             </gmp-map>
             <div
                 style={{
@@ -93,7 +87,6 @@ export default function PlaceMapPage() {
                 }}
                 aria-label="場所を検索"
             >
-                {/* @ts-ignore */}
                 <gmpx-place-picker style={{ width: "100%" }}></gmpx-place-picker>
             </div>
         </div>
