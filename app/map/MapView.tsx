@@ -15,6 +15,7 @@ export default function MapView({ title, places }: { title: string; places: any[
   const [selectedGenre, setSelectedGenre] = useState<string>("all");
   const [visitFilter, setVisitFilter] = useState<VisitFilter>("all");
   const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<string | null>(null);
 
   // 1. ジャンル一覧の抽出
   const genres = useMemo(() => {
@@ -58,6 +59,9 @@ export default function MapView({ title, places }: { title: string; places: any[
                   lat: position.coords.latitude,
                   lng: position.coords.longitude,
                 };
+                // 文字列形式で保存（gmp-advanced-marker の position 属性用）
+                setCurrentLocation(`${pos.lat},${pos.lng}`);
+                
                 const targetMap = mapEl.innerMap || mapEl;
                 if (targetMap && typeof targetMap.setCenter === 'function') {
                   targetMap.setCenter(pos);
@@ -175,6 +179,10 @@ export default function MapView({ title, places }: { title: string; places: any[
           zoom="5"
           map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
         >
+          {/* 現在地が取得できた場合のみ赤いピンを表示 */}
+          {currentLocation && (
+            <gmp-advanced-marker position={currentLocation} title="現在地"></gmp-advanced-marker>
+          )}
         </gmp-map>
         
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
