@@ -40,7 +40,7 @@ export default function MapView({ title, places }: { title: string; places: any[
     });
   }, [places, visitFilter, selectedPrefectures, selectedGenre, searchQuery]);
 
-  // 3. 地図初期化
+  // 3. 地図初期化 & 現在地取得
   useEffect(() => {
     let retry: NodeJS.Timeout;
     async function init() {
@@ -48,6 +48,35 @@ export default function MapView({ title, places }: { title: string; places: any[
       if (typeof customElements !== 'undefined') {
         await customElements.whenDefined("gmp-map");
         mapReady.current = true;
+        
+        const mapEl = document.querySelector("gmp-map") as any;
+        if (mapEl && window.google?.maps) {
+          // 現在地取得を試みる
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const pos = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                };
+                const targetMap = mapEl.innerMap || mapEl;
+                if (targetMap && typeof targetMap.setCenter === 'function') {
+                  targetMap.setCenter(pos);
+                  targetMap.setZoom(13); // 現在地付近は詳細に表示
+                }
+              },
+              () => {
+                // 許可されなかった場合やエラー時は日本本州が見える広域表示（デフォルトのまま、または再設定）
+                const targetMap = mapEl.innerMap || mapEl;
+                if (targetMap && typeof targetMap.setCenter === 'function') {
+                  targetMap.setCenter({ lat: 36.2048, lng: 138.2529 }); // 日本中心付近
+                  targetMap.setZoom(5); // 本州が見える程度の広域
+                }
+              }
+            );
+          }
+        }
+        
         setTimeout(() => updateMarkers(), 500);
       }
     }
@@ -266,11 +295,11 @@ export default function MapView({ title, places }: { title: string; places: any[
         <div className="flex-1 relative order-1 lg:order-2 h-1/2 lg:h-full">
           <gmp-map
             style={{ width: "100%", height: "100%" }}
-            center="35.681236,139.767125"
-            zoom="13"
+            center="36.2048,138.2529" // デフォルトは日本中心
+            zoom="5" // デフォルトは広域
             map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
           >
-            <gmp-advanced-marker id="map-selected-marker" position="35.681236,139.767125"></gmp-advanced-marker>
+            <gmp-advanced-marker id="map-selected-marker" position="36.2048,138.2529"></gmp-advanced-marker>
           </gmp-map>
           
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
