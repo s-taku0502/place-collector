@@ -6,7 +6,7 @@ import RegionFilter from "@/components/RegionFilter";
 type VisitFilter = "all" | "visited" | "unvisited";
 
 export default function MapView({ title, places }: { title: string; places: any[] }) {
-  const mapReady = useRef(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<any[]>([]);
   const [selectedRegionClass, setSelectedRegionClass] = useState<"A"|"B"|"C">("A");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
@@ -48,27 +48,37 @@ export default function MapView({ title, places }: { title: string; places: any[
     });
   }, [places, visitFilter, selectedPrefectures, selectedGenre, searchQuery]);
 
-  // 3. 地図初期化 & 現在地取得
+  // 3. 地図の動的注入 & 初期化
   useEffect(() => {
-    if (!isClient) return;
-    
-    let retry: NodeJS.Timeout;
+    if (!isClient || !mapContainerRef.current) return;
+
+    // React のレンダリングサイクルから切り離して地図要素を注入
+    const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "";
+    mapContainerRef.current.innerHTML = `
+      <gmp-map
+        style="width: 100%; height: 100%;"
+        center="36.2048,138.2529"
+        zoom="5"
+        map-id="${mapId}"
+      >
+        <div slot="control-block-start-inline-center" style="width: 100%; max-width: 380px; padding: 16px;">
+          <gmpx-place-picker style="width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"></gmpx-place-picker>
+        </div>
+      </gmp-map>
+    `;
+
     async function init() {
-      // @ts-ignore
       if (typeof customElements !== 'undefined') {
         try {
           await customElements.whenDefined("gmp-map");
-          mapReady.current = true;
+          const mapEl = mapContainerRef.current?.querySelector("gmp-map") as any;
           
-          const mapEl = document.querySelector("gmp-map") as any;
           if (mapEl && window.google?.maps) {
+            // 現在地取得
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition(
                 (position) => {
-                  const pos = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                  };
+                  const pos = { lat: position.coords.latitude, lng: position.coords.longitude };
                   setCurrentLocation(`${pos.lat},${pos.lng}`);
                   
                   const targetMap = mapEl.innerMap || mapEl;
@@ -88,25 +98,40 @@ export default function MapView({ title, places }: { title: string; places: any[
             }
           }
           
+          // マーカー更新
           setTimeout(() => updateMarkers(), 500);
         } catch (e) {
           console.error("Map initialization failed:", e);
         }
       }
     }
-    
-    function tryInit() {
-      if (typeof window !== "undefined" && window.google && window.google.maps) init();
-      else retry = setTimeout(tryInit, 500);
-    }
-    
-    tryInit();
-    return () => retry && clearTimeout(retry);
+
+    const timer = setTimeout(init, 100);
+    return () => clearTimeout(timer);
   }, [isClient]);
 
+  // 現在地マーカーの動的表示（innerHTML を介して制御）
+  useEffect(() => {
+    if (!isClient || !mapContainerRef.current) return;
+    const mapEl = mapContainerRef.current.querySelector("gmp-map");
+    if (!mapEl) return;
+
+    // 既存の現在地マーカーを削除
+    const oldMarker = mapEl.querySelector('gmp-advanced-marker[title="現在地"]');
+    if (oldMarker) oldMarker.remove();
+
+    // 新しい現在地マーカーを追加
+    if (currentLocation) {
+      const marker = document.createElement('gmp-advanced-marker');
+      marker.setAttribute('position', currentLocation);
+      marker.setAttribute('title', '現在地');
+      mapEl.appendChild(marker);
+    }
+  }, [currentLocation, isClient]);
+
   const updateMarkers = async () => {
-    if (!mapReady.current || !isClient) return;
-    const mapEl = document.querySelector("gmp-map") as any;
+    if (!isClient || !mapContainerRef.current) return;
+    const mapEl = mapContainerRef.current.querySelector("gmp-map") as any;
     if (!mapEl || !window.google?.maps) return;
 
     markersRef.current.forEach(m => m && m.setMap && m.setMap(null));
@@ -164,8 +189,8 @@ export default function MapView({ title, places }: { title: string; places: any[
   }, [filteredPlaces, isClient]);
 
   const handlePlaceClick = async (p: any) => {
-    if (!p.address || !isClient) return;
-    const mapEl = document.querySelector("gmp-map") as any;
+    if (!p.address || !isClient || !mapContainerRef.current) return;
+    const mapEl = mapContainerRef.current.querySelector("gmp-map") as any;
     try {
       const geocoder = new window.google.maps.Geocoder();
       const res = await new Promise<any>((resolve, reject) =>
@@ -184,32 +209,17 @@ export default function MapView({ title, places }: { title: string; places: any[
     } catch (e) {}
   };
 
-  // クライアントサイドでの実行前は何も表示しない（ハイドレーションエラー防止）
   if (!isClient) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 font-sans overflow-x-hidden">
-      {/* 1. 地図セクション - ページ最上部 */}
-      <div className="w-full h-[400px] relative shrink-0 z-10 border-b">
-        {/* @ts-ignore */}
-        <gmp-map
-          style={{ width: "100%", height: "100%" }}
-          center="36.2048,138.2529"
-          zoom="5"
-          map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
-        >
-          {/* 現在地が取得できた場合のみ赤いピンを表示 */}
-          {currentLocation && (
-            /* @ts-ignore */
-            <gmp-advanced-marker position={currentLocation} title="現在地"></gmp-advanced-marker>
-          )}
-        {/* @ts-ignore */}
-        </gmp-map>
-        
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
-          {/* @ts-ignore */}
-          <gmpx-place-picker style={{ width: "100%", borderRadius: "12px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}></gmpx-place-picker>
-        </div>
+      {/* 1. 地図セクション - React の管理外で DOM 注入 */}
+      <div 
+        ref={mapContainerRef}
+        className="w-full h-[400px] relative shrink-0 z-10 border-b bg-gray-100"
+        suppressHydrationWarning
+      >
+        {/* ここに gmp-map が動的に注入されます */}
       </div>
 
       {/* 2. フィルター & リストセクション - 地図の下に続く */}
