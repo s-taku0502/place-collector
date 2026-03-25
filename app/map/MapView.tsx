@@ -140,30 +140,8 @@ export default function MapView({ title, places }: { title: string; places: any[
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50 overflow-hidden font-sans">
-      {/* 1. メインヘッダー（訪問ステータスボタン） */}
-      <div className="bg-white px-6 py-4 flex items-center gap-4 z-20 shadow-sm border-b">
-        <button 
-          onClick={() => setVisitFilter("all")}
-          className={`px-6 py-2.5 rounded-lg font-bold transition-all shadow-md ${visitFilter === "all" ? 'bg-blue-600 text-white scale-105' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-        >
-          すべて
-        </button>
-        <button 
-          onClick={() => setVisitFilter("visited")}
-          className={`px-6 py-2.5 rounded-lg font-bold transition-all shadow-md ${visitFilter === "visited" ? 'bg-green-600 text-white scale-105' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
-        >
-          行った場所
-        </button>
-        <button 
-          onClick={() => setVisitFilter("unvisited")}
-          className={`px-6 py-2.5 rounded-lg font-bold transition-all shadow-md ${visitFilter === "unvisited" ? 'bg-gray-400 text-white scale-105' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-        >
-          まだ行ってない
-        </button>
-      </div>
-
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* 2. 地図セクション */}
+        {/* 1. 地図セクション */}
         <div className="flex-1 relative order-2 lg:order-1">
           <gmp-map
             style={{ width: "100%", height: "100%" }}
@@ -179,9 +157,31 @@ export default function MapView({ title, places }: { title: string; places: any[
           </div>
         </div>
 
-        {/* 3. サイドバー（リスト & 検索） */}
-        <aside className="w-full lg:w-[400px] bg-white border-r flex flex-col shadow-xl z-10 order-1 lg:order-2">
-          {/* 検索 & フィルター */}
+        {/* 2. サイドバー（リスト & 検索） */}
+        <aside className="w-full lg:w-[420px] bg-white border-r flex flex-col shadow-xl z-10 order-1 lg:order-2">
+          {/* 訪問ステータスフィルター（最上部） */}
+          <div className="p-4 bg-white border-b flex items-center justify-center gap-3">
+            <button 
+              onClick={() => setVisitFilter("all")}
+              className={`flex-1 py-2.5 rounded-xl font-bold transition-all shadow-sm text-sm ${visitFilter === "all" ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+            >
+              すべて
+            </button>
+            <button 
+              onClick={() => setVisitFilter("visited")}
+              className={`flex-1 py-2.5 rounded-xl font-bold transition-all shadow-sm text-sm ${visitFilter === "visited" ? 'bg-green-600 text-white shadow-green-200' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+            >
+              行った
+            </button>
+            <button 
+              onClick={() => setVisitFilter("unvisited")}
+              className={`flex-1 py-2.5 rounded-xl font-bold transition-all shadow-sm text-sm ${visitFilter === "unvisited" ? 'bg-gray-400 text-white shadow-gray-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+            >
+              未訪問
+            </button>
+          </div>
+
+          {/* 検索 & ジャンル & 地域 */}
           <div className="p-4 space-y-3 bg-white border-b">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -198,7 +198,7 @@ export default function MapView({ title, places }: { title: string; places: any[
               </div>
               <button 
                 onClick={() => setShowFilterPanel(true)}
-                className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition shadow-sm text-gray-600"
+                className={`p-2.5 border rounded-xl transition shadow-sm ${selectedPrefectures.length > 0 ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                 title="地域フィルター"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -220,19 +220,25 @@ export default function MapView({ title, places }: { title: string; places: any[
 
           {/* リスト表示 */}
           <div className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/30">
-            <div className="px-4 py-3 flex justify-between items-center">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            <div className="px-5 py-4 flex justify-between items-center">
+              <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
                 {visitFilter === "all" ? "すべての場所" : visitFilter === "visited" ? "行った場所" : "まだ行ってない場所"}
-              </span>
-              <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-md border shadow-sm">
+              </h2>
+              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 shadow-sm">
                 {filteredPlaces.length}件
               </span>
             </div>
 
             {filteredPlaces.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400 px-8 text-center">
-                <p className="text-sm">該当する場所が見つかりません</p>
-                <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]); setVisitFilter("all");}} className="mt-4 text-blue-500 text-sm font-bold hover:underline">リセット</button>
+                <div className="bg-gray-100 p-4 rounded-full mb-4">
+                  <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium">該当する場所が見つかりません</p>
+                <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]); setVisitFilter("all");}} className="mt-4 text-blue-600 text-sm font-bold hover:underline">フィルターをリセット</button>
               </div>
             ) : (
               <div className="space-y-3 p-4 pt-0">
@@ -245,7 +251,7 @@ export default function MapView({ title, places }: { title: string; places: any[
                     className={`p-4 bg-white rounded-2xl shadow-sm border transition-all duration-200 cursor-pointer ${hoveredPlaceId === p._id ? 'ring-2 ring-blue-500 shadow-md transform -translate-y-0.5' : 'border-gray-100 hover:border-blue-200 hover:shadow-md'}`}
                   >
                     <div className="flex justify-between items-start gap-2 mb-1.5">
-                      <h3 className="font-bold text-gray-900 leading-snug">{p.title}</h3>
+                      <h3 className="font-bold text-gray-900 text-sm line-clamp-1 flex-1">{p.title}</h3>
                       {p.genre && (
                         <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-bold">
                           {p.genre}
