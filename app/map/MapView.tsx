@@ -160,20 +160,22 @@ export default function MapView({ title, places }: { title: string; places: any[
         targetMap.setCenter(loc);
         targetMap.setZoom(16);
       }
-      // スクロールを最上部に戻す（地図が見えるように）
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // モバイルの場合は地図が見えるように上部へスクロール
+      if (window.innerWidth < 1024) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (e) {}
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 font-sans">
-      <div className="flex flex-col lg:flex-row relative">
+    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-gray-50 font-sans overflow-x-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 relative">
         
-        {/* 1. サイドバー（リスト & 検索） - ページ全体としてスクロール */}
-        <aside className="w-full lg:w-[420px] bg-white border-r shadow-xl z-10 order-2 lg:order-1">
-          <div className="flex flex-col">
-            {/* 訪問ステータスフィルター（最上部） - ページ全体がスクロールするので sticky はサイドバー内のみ */}
-            <div className="sticky top-0 p-4 bg-white/95 backdrop-blur-sm border-b flex items-center justify-center gap-3 shrink-0 z-20">
+        {/* 1. サイドバー（リスト & 検索） - デスクトップでは左、モバイルでは下 */}
+        <aside className="w-full lg:w-[420px] bg-white border-r shadow-xl z-20 order-2 lg:order-1 relative">
+          <div className="flex flex-col min-h-full bg-white">
+            {/* 訪問ステータスフィルター（最上部） - z-index を高く設定して重なりを防ぐ */}
+            <div className="sticky top-0 p-4 bg-white border-b flex items-center justify-center gap-3 shrink-0 z-30 shadow-sm">
               <button 
                 onClick={() => setVisitFilter("all")}
                 className={`flex-1 py-2.5 rounded-xl font-bold transition-all shadow-sm text-sm ${visitFilter === "all" ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
@@ -195,7 +197,7 @@ export default function MapView({ title, places }: { title: string; places: any[
             </div>
 
             {/* 検索 & ジャンル & 地域 */}
-            <div className="p-4 space-y-3 bg-white border-b shrink-0">
+            <div className="p-4 space-y-3 bg-white border-b shrink-0 z-20">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <input
@@ -231,9 +233,9 @@ export default function MapView({ title, places }: { title: string; places: any[
               </select>
             </div>
 
-            {/* リスト表示部分 - ここがページ全体の一部として伸びる */}
-            <div className="bg-gray-50/30">
-              <div className="px-5 py-4 flex justify-between items-center">
+            {/* リスト表示部分 */}
+            <div className="bg-gray-50/30 flex-1 min-h-0 overflow-y-auto lg:overflow-visible">
+              <div className="px-5 py-4 flex justify-between items-center bg-white/50">
                 <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">
                   {visitFilter === "all" ? "すべての場所" : visitFilter === "visited" ? "行った場所" : "まだ行ってない場所"}
                 </h2>
@@ -254,7 +256,7 @@ export default function MapView({ title, places }: { title: string; places: any[
                   <button onClick={() => {setSearchQuery(""); setSelectedGenre("all"); setSelectedPrefectures([]); setVisitFilter("all");}} className="mt-4 text-blue-600 text-sm font-bold hover:underline">フィルターをリセット</button>
                 </div>
               ) : (
-                <div className="space-y-3 p-4 pt-0 pb-10">
+                <div className="space-y-3 p-4 pt-0 pb-20">
                   {filteredPlaces.map((p: any) => (
                     <div 
                       key={p._id}
@@ -291,8 +293,8 @@ export default function MapView({ title, places }: { title: string; places: any[
           </div>
         </aside>
 
-        {/* 2. 地図セクション - デスクトップでは画面右側に固定 */}
-        <div className="flex-1 order-1 lg:order-2 h-[50vh] lg:h-[calc(100vh-64px)] lg:sticky lg:top-0">
+        {/* 2. 地図セクション - デスクトップでは画面右側に固定配置 */}
+        <div className="flex-1 order-1 lg:order-2 h-[60vh] lg:h-[calc(100vh-64px)] lg:sticky lg:top-0 z-10">
           <gmp-map
             style={{ width: "100%", height: "100%" }}
             center="36.2048,138.2529"
