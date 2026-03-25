@@ -13,7 +13,7 @@ export default function SitemapPage() {
                 サイトの全URLを一覧で確認できます。検索エンジン向けのファイルは
                 {' '}
                 <a href="/sitemap.xml" className="text-blue-600 hover:underline">sitemap.xml</a>
-                にあります。
+                にあります。表示が古い場合は「更新」ボタンで再読み込みしてください。
             </p>
             <SitemapViewer />
         </main>
