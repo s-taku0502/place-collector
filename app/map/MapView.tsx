@@ -10,6 +10,7 @@ export default function MapView({ title, places }: { title: string; places: any[
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<any[]>([]);
   const directionsRendererRef = useRef<any>(null);
+  const infoWindowRef = useRef<any>(null);
   
   const [selectedRegionClass, setSelectedRegionClass] = useState<"A"|"B"|"C">("A");
   const [selectedPrefectures, setSelectedPrefectures] = useState<string[]>([]);
@@ -54,7 +55,7 @@ export default function MapView({ title, places }: { title: string; places: any[
     });
   }, [places, visitFilter, selectedPrefectures, selectedGenre, searchQuery]);
 
-  // 地図の動적注入 & 初期化
+  // 地図の動的注入 & 初期化
   useEffect(() => {
     if (!isClient || !mapContainerRef.current) return;
 
@@ -86,6 +87,9 @@ export default function MapView({ title, places }: { title: string; places: any[
               map: targetMap,
               suppressMarkers: false,
             });
+
+            // InfoWindow の初期化 (共通インスタンス)
+            infoWindowRef.current = new window.google.maps.InfoWindow();
 
             if (navigator.geolocation) {
               navigator.geolocation.getCurrentPosition(
@@ -180,7 +184,7 @@ export default function MapView({ title, places }: { title: string; places: any[
     const oldMarker = mapEl.querySelector('gmp-advanced-marker[title="現在地"]');
     if (oldMarker) oldMarker.remove();
 
-    if (currentLocation && !destination) { // 経路表示中は現在地マーカーを隠す（DirectionsRendererが描画するため）
+    if (currentLocation && !destination) { // 経路表示中は現在地マーカーを隠す
       const marker = document.createElement('gmp-advanced-marker');
       marker.setAttribute('position', currentLocation);
       marker.setAttribute('title', '現在地');
@@ -231,12 +235,20 @@ export default function MapView({ title, places }: { title: string; places: any[
           title: p.title,
           icon: { url: `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png` }
         });
-        const infow = new window.google.maps.InfoWindow({
-          content: `<div style="padding:8px;color:#333"><strong>${p.title}</strong><br><span style="font-size:12px;color:#666">${p.address || ""}</span><br><span style="font-size:11px;font-weight:bold;color:${p.visited ? '#16a34a' : '#f97316'}">${p.visited ? '● 訪問済み' : '○ 未訪問'}</span></div>`
-        });
         
         marker.addListener("click", () => {
-          infow.open(targetMap, marker);
+          if (infoWindowRef.current) {
+            infoWindowRef.current.setContent(`
+              <div style="padding:8px;color:#333">
+                <strong>${p.title}</strong><br>
+                <span style="font-size:12px;color:#666">${p.address || ""}</span><br>
+                <span style="font-size:11px;font-weight:bold;color:${p.visited ? '#16a34a' : '#f97316'}">
+                  ${p.visited ? '● 訪問済み' : '○ 未訪問'}
+                </span>
+              </div>
+            `);
+            infoWindowRef.current.open(targetMap, marker);
+          }
         });
         markersRef.current.push(marker);
       }
