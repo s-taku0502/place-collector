@@ -148,7 +148,6 @@ export default function MapView({ title, places }: { title: string; places: any[
   const handlePlaceClick = async (p: any) => {
     if (!p.address) return;
     const mapEl = document.querySelector("gmp-map") as any;
-    const markerEl = document.querySelector("#map-selected-marker") as any;
     try {
       const geocoder = new window.google.maps.Geocoder();
       const res = await new Promise<any>((resolve, reject) =>
@@ -163,7 +162,6 @@ export default function MapView({ title, places }: { title: string; places: any[
         targetMap.setCenter(loc);
         targetMap.setZoom(16);
       }
-      if (markerEl) markerEl.position = { lat: loc.lat(), lng: loc.lng() };
     } catch (e) {}
   };
 
@@ -299,7 +297,6 @@ export default function MapView({ title, places }: { title: string; places: any[
             zoom="5" // デフォルトは広域
             map-id={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ""}
           >
-            <gmp-advanced-marker id="map-selected-marker" position="36.2048,138.2529"></gmp-advanced-marker>
           </gmp-map>
           
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-sm px-4">
