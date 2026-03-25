@@ -299,7 +299,6 @@ export default function PlaceForm({
                         名称 <span className="text-red-500">*</span>
                     </label>
                     <div className="space-y-2">
-                        {/* @ts-expect-error */}
                         <gmpx-place-picker
                             ref={pickerRef}
                             placeholder="場所を検索..."
